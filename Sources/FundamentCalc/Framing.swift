@@ -28,17 +28,27 @@ enum SillType: String, CaseIterable, Identifiable {
     }
 }
 
-/// Этапы для 3D-просмотра
+/// Этапы для 3D-просмотра (в порядке работ на площадке)
 enum Stage3D: Int, CaseIterable, Identifiable, Comparable {
-    case site, foundation, floor, walls, upper, roof, battens, finish
+    case site, markout, dig, cushion, formwork, rebar, concrete, backfill, sill, floor, walls, cap, upper, roof, battens, finish
     var id: Int { rawValue }
     static func < (a: Stage3D, b: Stage3D) -> Bool { a.rawValue < b.rawValue }
+    /// Этапы нулевого цикла — фундамент ещё не готов
+    var isFoundation: Bool { self >= .markout && self <= .backfill }
     var title: String {
         switch self {
-        case .site: return "Участок и разбивка"
-        case .foundation: return "Фундамент и арматура"
-        case .floor: return "Обвязка и пол 1-го этажа"
-        case .walls: return "Каркас стен 1-го этажа"
+        case .site: return "Участок, обноска и оси"
+        case .markout: return "Разметка котлована"
+        case .dig: return "Котлован / траншея"
+        case .cushion: return "Песчаная подушка"
+        case .formwork: return "Опалубка"
+        case .rebar: return "Армирование"
+        case .concrete: return "Бетонирование"
+        case .backfill: return "Распалубка и обратная засыпка"
+        case .sill: return "Гидроизоляция, обвязка, анкеры"
+        case .floor: return "Перекрытие пола 1-го этажа"
+        case .walls: return "Подъём стен 1-го этажа"
+        case .cap: return "Второй ряд верхней обвязки"
         case .upper: return "Перекрытия и верхние этажи"
         case .roof: return "Стропильная система"
         case .battens: return "Контробрешётка и обрешётка"
@@ -104,6 +114,8 @@ struct Member {
     var stage: Stage3D
     var onlyOwnStage = false   // временные элементы
     var role = 0               // 0 — наружная стена/прочее, 1 — несущая перегородка, 2 — ненесущая
+    var wall = -1              // индекс стены в Framing.walls (−1 — не стена)
+    var storey = 0             // этаж; балки межэтажного перекрытия — этаж, который они несут
     var length: Double { simd_length(b - a) }
 }
 
@@ -121,6 +133,10 @@ struct WallFrame: Identifiable {
     var openings: [(u0: Double, u1: Double, z0: Double, z1: Double, label: String)] = []
     var temps: [Double] = []            // где ставятся временные укосины (u)
     var origin = 0.0                    // начало сетки стоек (u), для наружных стен — наружный угол
+    // положение в плане (для 3D: стена собирается лёжа на платформе и поднимается)
+    var a = V2(0, 0), dir = V2(1, 0), inward = V2(0, 1)
+    var z0 = 0.0
+    var bearing = true
 }
 
 struct JoistLayout {
@@ -169,6 +185,8 @@ struct Framing {
     var levelBase = 0.0, wallTop = 0.0, foundTop = 0.0
     var wallHeights: [Double] = []
     var levels: [Double] = []           // отметки низа стен каждого этажа
+    /// Порядок подъёма стен 1-го этажа (индексы в walls) с пояснением
+    var erect: [(wall: Int, note: String)] = []
     var roofQd = 0.0, roofQn = 0.0
 }
 
@@ -358,7 +376,7 @@ enum FrameGen {
                 let (a, b) = trimmed(ln.a, ln.b, ext: ln.isExterior, depth: ln.isExterior ? F.sillSec.wm : 0.15, p: p, rings: rings)
                 F.sillLines.append((a, b))
                 let sec = ln.isExterior ? F.sillSec : (p.sillType == .timber ? Lumber(150, 150) : Lumber(50, 150))
-                F.members.append(flat(a, b, z0: F.foundTop, t: sec.tm, sec: sec, kind: .sill, stage: .floor))
+                F.members.append(flat(a, b, z0: F.foundTop, t: sec.tm, sec: sec, kind: .sill, stage: .sill))
             }
         } else {
             for ln in lines {
@@ -415,6 +433,8 @@ enum FrameGen {
                     .filter { $0.pos > -0.01 && $0.pos < s.length + 0.01 }
                 var wf = WallFrame(name: "Н\(si + 1)", storey: k, exterior: true, depth: depth, length: s.length, height: hw)
                 wf.origin = -uOff - depth / 2      // сетка стоек — от наружного угла
+                let first = F.members.count
+                defer { for i in first..<F.members.count { F.members[i].wall = F.walls.count - 1; F.members[i].storey = k } }
                 frameWall(&F, &wf, p: p, a: s.a, b: s.b, inward: inward, sec: sec, startExt: atStart ? ext : 0, endExt: atEnd ? ext : 0,
                           z0: z0, hw: hw, openings: hostOps, exterior: true, stage: stage, storey: k, junctions: junctions(p, s.a, s.b, except: nil),
                           sip: s.material == .sip, gable: k == floors - 1 ? roofModel0.profile(s.a, s.b) : [])
@@ -428,7 +448,7 @@ enum FrameGen {
                 let hostOps = ops.filter { $0.host == .partition(pt.id) }
                 var wf = WallFrame(name: "П\(pi + 1)", storey: k, exterior: false, depth: sec.wm, length: pt.length, height: hw)
                 let first = F.members.count
-                defer { for i in first..<F.members.count { F.members[i].role = pt.onFoundation ? 1 : 2 } }
+                defer { for i in first..<F.members.count { F.members[i].role = pt.onFoundation ? 1 : 2; F.members[i].wall = F.walls.count - 1; F.members[i].storey = k } }
                 frameWall(&F, &wf, p: p, a: pt.a, b: pt.b, inward: V2(-dir.y, dir.x), sec: sec, startExt: -hs / 2, endExt: -he / 2,
                           z0: z0, hw: hw, openings: hostOps, exterior: false, stage: stage, storey: k,
                           junctions: junctions(p, pt.a, pt.b, except: pt.id), sip: false, gable: [], bearing: pt.onFoundation)
@@ -437,7 +457,9 @@ enum FrameGen {
             // перекрытие над этажом
             if k < floors - 1, var j = interJ {
                 j.zBottom = z0 + hw
+                let first = F.members.count
                 addJoists(&F, j, rings: rings, depth: D, kind: .joist, stage: .upper, withRim: true)
+                for i in first..<F.members.count { F.members[i].storey = k + 1 }
                 if k == 0 { F.floors.append(j) }
             }
         }
@@ -446,6 +468,8 @@ enum FrameGen {
             addJoists(&F, a, rings: rings, depth: D, kind: .ceilingJoist, stage: .roof, withRim: p.roofType == .flat)
             F.attic = a
         }
+
+        F.erect = erectionOrder(F, p)
 
         // --- Стойка: устойчивость (самая нагруженная, 1-й этаж) ---
         // погонная расчётная нагрузка на стену (без пола 1-го этажа, который опирается на обвязку) × шаг стоек
@@ -461,6 +485,47 @@ enum FrameGen {
         // --- Перемычки ---
         computeHeaders(&F, p, r, ops: ops)
         return F
+    }
+
+    /// Порядок подъёма стен 1-го этажа, как на площадке: первой — самая длинная наружная стена
+    /// (на неё сразу ставят временные укосины), дальше по кругу — каждая следующая стыкуется в угол
+    /// с уже стоящей, так коробка всё время раскреплена; затем стены двора, несущие перегородки, остальные перегородки.
+    static func erectionOrder(_ F: Framing, _ p: Project) -> [(wall: Int, note: String)] {
+        let ws = F.walls.indices.filter { F.walls[$0].storey == 0 }
+        let segs = p.segments
+        let edges = p.edges
+        var out: [(Int, String)] = []
+        for ring in 0..<max(p.rings.count, 1) {
+            let ext = ws.filter { i in
+                guard F.walls[i].exterior, let k = Int(F.walls[i].name.dropFirst()), k - 1 < segs.count else { return false }
+                return edges[segs[k - 1].edge].ring == ring
+            }
+            guard !ext.isEmpty else { continue }
+            let start = ext.indices.max { F.walls[ext[$0]].length < F.walls[ext[$1]].length }!
+            for j in 0..<ext.count {
+                let i = ext[(start + j) % ext.count]
+                let w = F.walls[i]
+                let note: String
+                if ring == 0 && j == 0 {
+                    note = "первой поднимают самую длинную стену \(w.name) (\(fmt(w.length, 2)) м): собрали лёжа на платформе, подняли, выставили по уровню и раскрепили временными укосинами"
+                } else if j == ext.count - 1 {
+                    note = "стена \(w.name) замыкает контур — стыкуется в оба угла; проверить диагонали коробки (разница ≤ 10 мм)"
+                } else {
+                    let prev = F.walls[ext[(start + j - 1 + ext.count) % ext.count]].name
+                    note = ring == 0 ? "стена \(w.name) (\(fmt(w.length, 2)) м) встаёт в угол к \(prev): угол на 3 гвоздя через 300 мм, отвес по двум плоскостям"
+                                     : "стена двора \(w.name) (\(fmt(w.length, 2)) м) — в угол к \(prev)"
+                }
+                out.append((i, note))
+            }
+        }
+        let parts = ws.filter { !F.walls[$0].exterior }
+        for i in parts.filter({ F.walls[$0].bearing }).sorted(by: { F.walls[$0].length > F.walls[$1].length }) {
+            out.append((i, "несущая перегородка \(F.walls[i].name) (\(fmt(F.walls[i].length, 2)) м) — до перекрытия: на неё опираются балки"))
+        }
+        for i in parts.filter({ !F.walls[$0].bearing }).sorted(by: { F.walls[$0].length > F.walls[$1].length }) {
+            out.append((i, "перегородка \(F.walls[i].name) (\(fmt(F.walls[i].length, 2)) м) — к стойкам примыкания стен"))
+        }
+        return out
     }
 
     /// Стыковка в углах: горизонтальные наружные стены — «проходные» (удлинены на D/2), вертикальные — «примыкающие»
@@ -583,6 +648,7 @@ enum FrameGen {
         let gridOrigin = p.modular ? wf.origin : 0
         wf = WallFrame(name: wf.name, storey: wf.storey, exterior: wf.exterior, depth: D, length: s1 - s0, height: hw)
         wf.origin = gridOrigin - s0
+        wf.a = a + dir * s0; wf.dir = dir; wf.inward = inward; wf.z0 = z0; wf.bearing = bearing
         func P(_ u: Double) -> V2 { a + dir * u }
         func rect(_ k: MemberKind, _ u0: Double, _ u1: Double, _ zb: Double, _ zt: Double) {
             wf.rects.append((k, u0 - s0, u1 - s0, zb - z0, zt - z0))

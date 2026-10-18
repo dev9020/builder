@@ -159,8 +159,8 @@ enum PDFExport {
         let cam = SCNNode(); cam.camera = SCNCamera(); cam.camera!.zNear = 0.05; cam.camera!.zFar = 500
         let (lo, hi) = Geo.bbox(p.rings)
         let c = (lo + hi) / 2, d = (max(hi.x - lo.x, hi.y - lo.y) * 0.95 + 5) * (stage == .finish ? 0.95 : 0.75)
-        cam.position = SceneBuilder.v3(c + V2(d * 0.75, -d * 0.9), d * (stage <= .foundation ? 0.85 : 0.6))
-        cam.look(at: SceneBuilder.v3(c, stage <= .foundation ? 0 : 1.5))
+        cam.position = SceneBuilder.v3(c + V2(d * 0.75, -d * 0.9), d * (stage <= .backfill ? 0.85 : 0.6))
+        cam.look(at: SceneBuilder.v3(c, stage <= .backfill ? 0 : 1.5))
         scene.rootNode.addChildNode(cam)
         let rnd = SCNRenderer(device: MTLCreateSystemDefaultDevice(), options: nil)
         rnd.scene = scene

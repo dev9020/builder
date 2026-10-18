@@ -8,6 +8,17 @@ struct FundamentApp: App {
     init() {
         if CommandLine.arguments.contains("--presets") {
             for pr in HousePreset.all {
+                let p0 = Project()
+                pr.build(p0); p0.sheathing = .osb; p0.fitToModule()
+                for c in Daylight.improve(p0) { print("   свет: \(c.room) — \(c.text)") }
+                for i in Daylight.issues(p0) { print("   ТЕМНО: \(i)") }
+                for o in p0.openings {
+                    guard case .edge(let ei) = o.host else { continue }
+                    let g = (o.pos - o.width / 2 - 0.075 + p0.studDepth / 2) / Module.step
+                    let kings = [o.pos - o.width / 2 - 0.075, o.pos + o.width / 2 + 0.075]
+                    if CommandLine.arguments.contains("--edges") { print("   проём \(o.kind.title) w=\(fmt(o.width)) стена \(ei) pos \(fmt(o.pos)) L=\(fmt((p0.edges[ei].b - p0.edges[ei].a).len)) a=\(p0.edges[ei].a) studs=\(Daylight.junctionStuds(p0, edge: ei).map { fmt($0) })") }
+                    if abs(g - g.rounded()) > 0.01, !Daylight.junctionStuds(p0, edge: ei).contains(where: { s in kings.contains { abs($0 - s) < 0.01 } }) { print("   не на сетке: \(o.kind.title) \(fmt(o.width)) стена \(ei) pos \(fmt(o.pos))") }
+                }
                 let p = Project()
                 pr.apply(p)
                 let r = Calculator.run(p)
@@ -212,7 +223,7 @@ struct ContentView: View {
                 case .plan: PlanEditorView().environmentObject(editor)
                 case .results: ResultsView()
                 case .works: WorksView()
-                case .build: BuildView(show3D: { st in options.stage = st; tab = .view3D })
+                case .build: BuildView(show3D: { st in options.stage = st; options.sub = Int.max; tab = .view3D })
                 }
             }
             .frame(minWidth: 640, maxWidth: .infinity, maxHeight: .infinity)
@@ -295,16 +306,29 @@ struct ContentView: View {
             .padding(8)
 
             VStack {
-                HStack(spacing: 8) {
-                    Text("Этап:").bold()
-                    Button { if options.stage.rawValue > 0 { options.stage = Stage3D(rawValue: options.stage.rawValue - 1)! } } label: { Image(systemName: "chevron.left") }
-                        .disabled(options.stage == .site)
-                    Slider(value: Binding(get: { Double(options.stage.rawValue) }, set: { options.stage = Stage3D(rawValue: Int($0.rounded())) ?? .finish }),
-                           in: 0...Double(Stage3D.allCases.count - 1), step: 1)
-                        .frame(width: 220)
-                    Button { if options.stage != .finish { options.stage = Stage3D(rawValue: options.stage.rawValue + 1)! } } label: { Image(systemName: "chevron.right") }
-                        .disabled(options.stage == .finish)
-                    Text("\(options.stage.rawValue + 1). \(options.stage.title)").frame(width: 230, alignment: .leading)
+                let steps = Steps3D.make(project, model.results, model.plan.frame)
+                let cur = steps.firstIndex { $0.stage == options.stage && $0.sub == options.sub }
+                    ?? steps.firstIndex { $0.stage == options.stage } ?? steps.count - 1
+                let go = { (i: Int) in let s = steps[max(0, min(steps.count - 1, i))]; options.stage = s.stage; options.sub = s.sub }
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Text("Этап:").bold()
+                        Button { go(cur - 1) } label: { Image(systemName: "chevron.left") }
+                            .disabled(cur == 0)
+                            .keyboardShortcut(.leftArrow, modifiers: [])
+                        Slider(value: Binding(get: { Double(cur) }, set: { go(Int($0.rounded())) }),
+                               in: 0...Double(max(steps.count - 1, 1)), step: 1)
+                            .frame(width: 260)
+                        Button { go(cur + 1) } label: { Image(systemName: "chevron.right") }
+                            .disabled(cur >= steps.count - 1)
+                            .keyboardShortcut(.rightArrow, modifiers: [])
+                        Text("\(cur + 1)/\(steps.count). \(steps[cur].title)").bold().frame(width: 270, alignment: .leading)
+                    }
+                    Text(steps[cur].note)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(width: 600, alignment: .leading)
                 }
                 .buttonStyle(.borderless)
                 .font(.callout)

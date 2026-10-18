@@ -12,6 +12,7 @@ struct SceneOptions: Hashable {
     var drainage = true
     var site = true
     var stage: Stage3D = .finish
+    var sub = Int.max          // подшаг этапа: сколько стен поднято / какой этаж
 }
 
 enum RGBColor {
@@ -102,12 +103,14 @@ enum SceneBuilder {
     // MARK: - Сборка сцены
 
     static func build(_ p: Project, _ r: CalcResults, _ o0: SceneOptions) -> SCNNode {
-        var o = o0
-        if o.stage == .foundation { o.rebar = true }
+        let o = o0
         let root = SCNNode()
+        if o.stage < .finish {
+            buildStaged(p, r, o, root)
+            return root
+        }
         let kind = p.selectedFoundation
         let rings = p.rings
-        let (lo, hi) = Geo.bbox(rings)
         let concrete = texMat(.concrete, uLen: 2, vLen: 1, opacity: o.rebar ? 0.28 : 1)
         let sand = texMat(.sand, uLen: 3, vLen: 0.5, opacity: o.rebar ? 0.3 : 1)
         let steel = mat(rgb(0.78, 0.32, 0.10), metal: true)
@@ -131,9 +134,7 @@ enum SceneBuilder {
             root.addChildNode(n)
         }
 
-        let staged = o.stage < .finish
-        if o.stage == .site { buildLayout(p, r, root) }
-        if o.foundation && o.stage >= .foundation {
+        if o.foundation {
             let rebarGroup = SCNNode()
             switch kind {
             case .strip: buildStrip(p, r.strip, concrete, sand, steel, rebarGroup, root, o.rebar)
@@ -141,10 +142,6 @@ enum SceneBuilder {
             case .piles: buildPiles(p, r.piles, concrete, steel, steelGray, rebarGroup, root, o.rebar)
             }
             if o.rebar { root.addChildNode(rebarGroup.flattenedClone()) }
-        }
-        if staged {
-            if o.stage >= .floor { buildFrame(p, r, o.stage, root) }
-            return root
         }
 
         let H = Double(p.floors) * p.floorHeight
@@ -201,12 +198,51 @@ enum SceneBuilder {
 
     // MARK: - Каркас по этапам
 
-    static func buildFrame(_ p: Project, _ r: CalcResults, _ stage: Stage3D, _ root: SCNNode) {
+    static func buildFrame(_ p: Project, _ r: CalcResults, _ stage: Stage3D, _ sub: Int, _ root: SCNNode) {
         let F = FrameGen.make(p, r)
+        // стены 1-го этажа: первые sub — подняты, следующая — собрана лёжа на платформе
+        var raised = Set<Int>(), lying = -1
+        if stage == .walls {
+            for (k, e) in F.erect.enumerated() { if k < sub { raised.insert(e.wall) } else if k == sub { lying = e.wall } }
+        }
+        // верхние этажи: на каждый этаж 3 подшага — перекрытие, наружные стены, перегородки
+        func upperStep(_ m: Member) -> Int {
+            let part = m.wall < 0 ? 0 : (F.walls[m.wall].exterior ? 1 : 2)
+            return (max(m.storey, 1) - 1) * 3 + part
+        }
+        func visible(_ m: Member) -> Bool {
+            if m.kind == .tempBrace {
+                // укосины стоят, пока коробку не свяжет второй ряд обвязки
+                if m.stage == .walls { return (stage == .walls && raised.contains(m.wall)) || stage == .cap }
+                return m.stage == stage && upperStep(m) <= sub
+            }
+            if m.stage < stage { return true }
+            if m.stage > stage { return false }
+            switch stage {
+            case .walls: return m.kind != .capPlate && (m.wall < 0 || raised.contains(m.wall) || m.wall == lying)
+            case .upper: return upperStep(m) <= sub
+            default: return true
+            }
+        }
+        // стена лёжа: поворот вокруг нижней внутренней кромки — верх стены ложится внутрь дома
+        func layDown(_ v: V3, _ w: WallFrame, vector: Bool) -> V3 {
+            let xy = V2(v.x, v.y)
+            let s = dot2(vector ? xy : xy - w.a, w.inward)
+            let h = vector ? v.z : v.z - w.z0
+            let along = vector ? xy - w.inward * s : xy - w.inward * s
+            if vector { return V3(along.x + w.inward.x * h, along.y + w.inward.y * h, -s) }
+            let q = along + w.inward * (w.depth / 2 + h)
+            return V3(q.x, q.y, w.z0 + w.depth / 2 - s)
+        }
         var groups: [MemberKind: SCNNode] = [:]
         var mats: [MemberKind: SCNMaterial] = [:]
-        for m in F.members {
-            guard m.stage <= stage, !(m.onlyOwnStage && m.stage != stage) else { continue }
+        for m0 in F.members {
+            guard visible(m0) else { continue }
+            var m = m0
+            if stage == .walls && m.wall == lying && m.wall >= 0 {
+                let w = F.walls[m.wall]
+                m.a = layDown(m.a, w, vector: false); m.b = layDown(m.b, w, vector: false); m.up = layDown(m.up, w, vector: true)
+            }
             let mat0: SCNMaterial
             if let mm = mats[m.kind] { mat0 = mm } else {
                 let c = m.kind.rgb
@@ -230,32 +266,40 @@ enum SceneBuilder {
             groups[m.kind] = grp
         }
         for (_, g) in groups { root.addChildNode(g.flattenedClone()) }
+        // гидроизоляция под обвязкой / нижней обвязкой стен
+        let tar = mat(rgb(0.12, 0.12, 0.13))
+        let wp = SCNNode()
+        for (a, b) in F.sillLines { wp.addChildNode(beam(a, b, width: F.studExt.wm + 0.02, bottom: F.foundTop, top: F.foundTop + 0.004, extend: 0.01, tar)) }
+        root.addChildNode(wp.flattenedClone())
         // настилы перекрытий (ОСП) — полупрозрачные
         let osb = mat(rgb(0.80, 0.68, 0.45), 0.55)
         let woodFloor = p.selectedFoundation != .slab && p.groundFloor == .wood
         if woodFloor && stage >= .floor { root.addChildNode(extrude(p.rings, bottom: F.levelBase - 0.022, top: F.levelBase, osb)) }
         if stage >= .upper {
-            for k in 1..<max(p.floors, 1) {
-                let z = F.levelBase + Double(k) * p.floorHeight
+            for k in 1..<max(p.floors, 1) where stage > .upper || (k - 1) * 3 <= sub {
+                let z = k < F.levels.count ? F.levels[k] : F.levelBase + Double(k) * p.floorHeight
                 root.addChildNode(extrude(p.rings, bottom: z - 0.022, top: z, osb))
             }
         }
         // анкеры
-        if stage == .floor {
+        if stage == .sill || stage == .floor {
             let steel = mat(rgb(0.6, 0.6, 0.62), metal: true)
-            for a in F.anchors { root.addChildNode(rod(f3(a, F.foundTop - 0.1), f3(a, F.foundTop + (p.selectedFoundation == .slab ? 0.1 : F.sillSec.tm) + 0.03), radius: 0.008, steel)) }
+            let top = F.foundTop + (p.selectedFoundation == .slab ? 0.1 : F.sillSec.tm) + 0.03
+            let g = SCNNode()
+            for a in F.anchors { g.addChildNode(rod(f3(a, F.foundTop - 0.1), f3(a, top), radius: 0.008, steel)) }
+            root.addChildNode(g.flattenedClone())
         }
     }
 
     /// Обноска и шнуры (этап разбивки)
-    static func buildLayout(_ p: Project, _ r: CalcResults, _ root: SCNNode) {
+    static func buildLayout(_ p: Project, _ r: CalcResults, _ root: SCNNode, strings: Bool = true) {
         let sc = Works.plan(p, r).scheme
         let wood = texMat(.wood, uLen: 1, vLen: 0.15)
         for post in sc.posts { root.addChildNode(beam(post - V2(0.025, 0), post + V2(0.025, 0), width: 0.05, bottom: 0, top: 0.8, extend: 0, wood)) }
         let ob = sc.obnoska
         for i in ob.indices { root.addChildNode(beam(ob[i], ob[(i + 1) % ob.count], width: 0.025, bottom: 0.62, top: 0.77, extend: 0.03, wood)) }
         let red = mat(rgb(0.9, 0.1, 0.1))
-        for (a, b) in sc.strings { root.addChildNode(rod(f3(a, 0.78), f3(b, 0.78), radius: 0.004, red)) }
+        for (a, b) in sc.strings where strings { root.addChildNode(rod(f3(a, 0.78), f3(b, 0.78), radius: 0.004, red)) }
         let peg = mat(rgb(0.95, 0.6, 0.1))
         for pl in sc.piles { root.addChildNode(rod(f3(pl, 0), f3(pl, 0.3), radius: 0.015, peg)) }
     }
@@ -501,13 +545,14 @@ enum SceneBuilder {
     }
 
     static func buildStrip(_ p: Project, _ s: StripResult, _ concrete: SCNMaterial, _ sand: SCNMaterial, _ steel: SCNMaterial,
-                           _ rebar: SCNNode, _ root: SCNNode, _ showRebar: Bool) {
+                           _ rebar: SCNNode, _ root: SCNNode, _ showRebar: Bool, parts: FoundParts = .all) {
         let d = s.depth, top = p.plinth
         for sl in s.lines {
             guard let sec = s.section(sl.line) else { continue }
             let a = sl.line.a, b = sl.line.b
-            root.addChildNode(beam(a, b, width: sec.b + 0.4, bottom: -d - s.cushion, top: -d, extend: sec.b / 2 + 0.2, sand))
-            if sec.isT {
+            if parts.cushion { root.addChildNode(beam(a, b, width: sec.b + 0.4, bottom: -d - s.cushion, top: -d, extend: sec.b / 2 + 0.2, sand)) }
+            if !parts.concrete {
+            } else if sec.isT {
                 root.addChildNode(beam(a, b, width: sec.b, bottom: -d, top: -d + sec.soleH, extend: sec.b / 2, concrete))
                 root.addChildNode(beam(a, b, width: sec.stemW, bottom: -d + sec.soleH, top: top, extend: sec.stemW / 2, concrete))
             } else {
@@ -550,26 +595,62 @@ enum SceneBuilder {
     }
 
     static func buildSlab(_ p: Project, _ s: SlabResult, _ concrete: SCNMaterial, _ sand: SCNMaterial, _ steel: SCNMaterial,
-                          _ rebar: SCNNode, _ root: SCNNode, _ showRebar: Bool) {
+                          _ rebar: SCNNode, _ root: SCNNode, _ showRebar: Bool, parts: FoundParts = .all) {
         guard !s.rings.isEmpty else { return }
-        let top = 0.15, bot = 0.15 - s.t
-        root.addChildNode(extrude(s.rings, bottom: bot, top: top, concrete))
-        let cush = s.rings.enumerated().map { i, r in Geo.offset(r, by: i == 0 ? 0.3 : -0.3) }
-        root.addChildNode(extrude(cush, bottom: bot - p.slabCushion, top: bot, sand))
+        // верх плиты — SlabCalc.aboveGround над землёй, на нём стоит каркас
+        let top = SlabCalc.aboveGround, bot = top - s.t
+        let insulated = p.soil.heave != .none
+        let epsT = insulated ? 0.1 : 0
+        if parts.concrete { root.addChildNode(extrude(s.rings, bottom: bot, top: top, concrete)) }
+        if parts.cushion {
+            let cush = s.rings.enumerated().map { i, r in Geo.offset(r, by: i == 0 ? 0.3 : -0.3) }
+            root.addChildNode(extrude(cush, bottom: bot - epsT - p.slabCushion, top: bot - epsT, sand))
+            if insulated { root.addChildNode(extrude(s.rings, bottom: bot - epsT, top: bot, mat(rgb(0.62, 0.80, 0.70)))) }
+        }
         guard showRebar else { return }
         let rr = Double(s.d) / 2000
+        let hb = bot + s.cover + rr, ht = top - s.cover - rr
         for (a, b) in s.bars {
-            for h in [bot + s.cover + rr, top - s.cover - rr] {
+            for h in [hb, ht] {
                 rebar.addChildNode(rod(f3(a, h), f3(b, h), radius: rr, steel))
+            }
+        }
+        // «лягушки» между сетками (≈ 1.5 шт/м²) и П-образные стержни по торцам — видно, что сеток две
+        let (lo, hi) = Geo.bbox(s.rings)
+        let g = 0.8
+        var y = lo.y + 0.4
+        while y < hi.y - 0.2 {
+            var x = lo.x + 0.4
+            while x < hi.x - 0.2 {
+                let c = V2(x, y)
+                if Geo.contains(c, s.rings) {
+                    rebar.addChildNode(rod(f3(c - V2(0.15, 0), hb), f3(c - V2(0.15, 0), ht), radius: 0.005, steel))
+                    rebar.addChildNode(rod(f3(c + V2(0.15, 0), hb), f3(c + V2(0.15, 0), ht), radius: 0.005, steel))
+                    rebar.addChildNode(rod(f3(c - V2(0.15, 0), ht), f3(c + V2(0.15, 0), ht), radius: 0.005, steel))
+                }
+                x += g
+            }
+            y += g
+        }
+        for (ri, ring0) in s.rings.enumerated() {
+            let ring = Geo.offset(ring0, by: (ri == 0 ? -1 : 1) * s.cover)
+            for i in ring.indices {
+                let a = ring[i], b = ring[(i + 1) % ring.count]
+                let L = (b - a).len, d = (b - a).unit
+                var t = 0.1
+                while t < L - 0.05 {
+                    rebar.addChildNode(rod(f3(a + d * t, hb), f3(a + d * t, ht), radius: rr * 0.8, steel))
+                    t += s.step
+                }
             }
         }
     }
 
     static func buildPiles(_ p: Project, _ s: PileResult, _ concrete: SCNMaterial, _ steel: SCNMaterial, _ steelGray: SCNMaterial,
-                           _ rebar: SCNNode, _ root: SCNNode, _ showRebar: Bool) {
+                           _ rebar: SCNNode, _ root: SCNNode, _ showRebar: Bool, parts: FoundParts = .all) {
         let gb = 0.15, gt = 0.15 + s.hg
         for pl in s.lines {
-            root.addChildNode(beam(pl.line.a, pl.line.b, width: s.bg, bottom: gb, top: gt, extend: s.bg / 2, concrete))
+            if parts.concrete { root.addChildNode(beam(pl.line.a, pl.line.b, width: s.bg, bottom: gb, top: gt, extend: s.bg / 2, concrete)) }
             if showRebar {
                 let dir = pl.line.dir, nrm = V2(-dir.y, dir.x)
                 let c = s.cover
@@ -590,6 +671,15 @@ enum SceneBuilder {
             }
         }
         for pos in s.positions {
+            if parts.holes {
+                let hole = SCNCylinder(radius: CGFloat(s.d / 2 + 0.02), height: 0.01)
+                hole.materials = [mat(rgb(0.22, 0.17, 0.12))]
+                let n = SCNNode(geometry: hole)
+                n.position = v3(pos, 0.006)
+                root.addChildNode(n)
+                continue
+            }
+            guard parts.piles else { continue }
             switch s.type {
             case .bored, .boredEnlarged:
                 root.addChildNode(rod(f3(pos, gb + 0.05), f3(pos, gb - s.L), radius: s.d / 2, concrete))
@@ -601,7 +691,7 @@ enum SceneBuilder {
                     n.scale = SCNVector3(1, 0.6, 1)
                     root.addChildNode(n)
                 }
-                if showRebar {
+                if showRebar || parts.cages {
                     for k in 0..<s.cageN {
                         let ang = Double(k) / Double(s.cageN) * 2 * .pi
                         let off = V2(cos(ang), sin(ang)) * (s.d / 2 - 0.05)

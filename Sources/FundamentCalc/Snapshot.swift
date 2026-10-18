@@ -9,6 +9,10 @@ enum Snapshot {
         let p = Project()
         if let j = CommandLine.arguments.firstIndex(of: "--preset"), j + 1 < CommandLine.arguments.count,
            let pr = HousePreset.all.first(where: { $0.id == CommandLine.arguments[j + 1] }) { pr.apply(p) }
+        if let j = CommandLine.arguments.firstIndex(of: "--foundation"), j + 1 < CommandLine.arguments.count,
+           let k = FoundationKind(rawValue: CommandLine.arguments[j + 1]) { p.selectedFoundation = k }
+        if let j = CommandLine.arguments.firstIndex(of: "--pile"), j + 1 < CommandLine.arguments.count,
+           let t = PileType(rawValue: CommandLine.arguments[j + 1]) { p.pileType = t }
         func save(_ img: NSImage?, _ name: String) {
             guard let img, let tiff = img.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
                   let png = rep.representation(using: .png, properties: [:]) else { print("fail \(name)"); return }
@@ -60,7 +64,7 @@ enum Snapshot {
             HousePreset.all.first { $0.id == "scandi112" }!.apply(p)
             var o = SceneOptions(); o.site = true
             scene3D("hero.png", o, high: 0.55, k: 0.62)
-            for (st, n) in [(Stage3D.walls, "stage_walls.png"), (.roof, "stage_roof.png"), (.foundation, "stage_foundation.png")] {
+            for (st, n) in [(Stage3D.walls, "stage_walls.png"), (.roof, "stage_roof.png"), (.rebar, "stage_foundation.png")] {
                 var so = SceneOptions(); so.stage = st
                 scene3D(n, so, high: 0.6, k: 0.6)
             }
@@ -114,9 +118,13 @@ enum Snapshot {
             return
         }
         if CommandLine.arguments.contains("--stages") {
-            for st in Stage3D.allCases {
-                var o = SceneOptions(); o.stage = st
-                scene3D("stage_\(st.rawValue).png", o, high: 0.6, k: 0.75)
+            let steps = Steps3D.make(p, Calculator.run(p), BuildPlan.make(p, Calculator.run(p)).frame)
+            for (i, st) in steps.enumerated() {
+                var o = SceneOptions(); o.stage = st.stage; o.sub = st.sub
+                print(String(format: "stage_%02d", i), st.title, "—", st.note)
+                let kk = CommandLine.arguments.firstIndex(of: "--k").flatMap { Double(CommandLine.arguments[$0 + 1]) } ?? 0.75
+                if let only = CommandLine.arguments.firstIndex(of: "--only").flatMap({ Int(CommandLine.arguments[$0 + 1]) }), only != i { continue }
+                scene3D(String(format: "stage_%02d.png", i), o, high: st.stage.isFoundation ? 0.8 * kk / 0.75 : 0.6, k: kk)
             }
             if CommandLine.arguments.contains("--preset") { return }
             p.roofType = .hip; p.shape = .lShape

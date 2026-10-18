@@ -243,7 +243,7 @@ struct BuildPlan {
         out.append(s1)
 
         // 2. Земляные работы
-        var s2 = BuildStage(title: "Земляные работы и песчаная подушка", icon: "shovel", scene: .foundation)
+        var s2 = BuildStage(title: "Земляные работы и песчаная подушка", icon: "shovel", scene: .cushion)
         s2.goal = "Подготовить основание под фундамент без нарушения природной структуры грунта."
         s2.steps = sec(1)?.steps ?? []
         let dDepth = kind == .strip ? r.strip.depth : kind == .slab ? r.slab.t : r.piles.L
@@ -264,7 +264,7 @@ struct BuildPlan {
         out.append(s2)
 
         // 3. Опалубка
-        var s3 = BuildStage(title: "Опалубка", icon: "square.stack.3d.up", scene: .foundation)
+        var s3 = BuildStage(title: "Опалубка", icon: "square.stack.3d.up", scene: .formwork)
         s3.goal = "Собрать щиты, которые выдержат давление бетона и дадут точную геометрию."
         s3.steps = sec(2)?.steps ?? []
         s3.decisions = [Decision(title: "Отклонение плоскостей опалубки", value: "≤ 5 мм на 1 м", why: "геометрия фундамента под обвязку каркаса", ref: N.sp70.at("разд. 5, опалубочные работы"))]
@@ -275,7 +275,7 @@ struct BuildPlan {
         out.append(s3)
 
         // 4. Армирование
-        var s4 = BuildStage(title: "Армирование фундамента (вязка каркасов)", icon: "line.3.crossed.swirl.circle", scene: .foundation)
+        var s4 = BuildStage(title: "Армирование фундамента (вязка каркасов)", icon: "line.3.crossed.swirl.circle", scene: .rebar)
         s4.goal = "Связать пространственный каркас, правильно выполнить углы, примыкания и нахлёсты."
         let lapMm = Int(r.strip.lap * 1000)
         s4.steps = (sec(3)?.steps ?? []) + {
@@ -337,7 +337,7 @@ struct BuildPlan {
         out.append(s4)
 
         // 5. Бетонирование
-        var s5 = BuildStage(title: "Маяки, бетонирование, уход, гидроизоляция", icon: "drop", scene: .foundation)
+        var s5 = BuildStage(title: "Маяки, бетонирование, уход, гидроизоляция", icon: "drop", scene: .concrete)
         s5.goal = "Залить без холодных швов, вывести верх в горизонт, дать бетону набрать прочность."
         s5.steps = (sec(4)?.steps ?? []) + (sec(5)?.steps ?? [])
         s5.decisions = [
@@ -361,7 +361,7 @@ struct BuildPlan {
         out.append(s5)
 
         // 6. Отмостка, дренаж
-        var s6 = BuildStage(title: "Отмостка и дренаж", icon: "drop.triangle", scene: .foundation)
+        var s6 = BuildStage(title: "Отмостка и дренаж", icon: "drop.triangle", scene: .backfill)
         s6.goal = "Отвести воду от фундамента и защитить грунт от промерзания и пучения."
         s6.steps = sec(6)?.steps ?? []
         let dr = Drainage.make(p, r)
@@ -374,7 +374,7 @@ struct BuildPlan {
 
         // 7. Обвязка
         let wind = WindCheck.make(p, r, F)
-        var s7 = BuildStage(title: kind == .slab ? "Гидроизоляция и нижняя обвязка на плите" : "Обвязка по фундаменту и анкеровка", icon: "rectangle.split.3x1", scene: .floor)
+        var s7 = BuildStage(title: kind == .slab ? "Гидроизоляция и нижняя обвязка на плите" : "Обвязка по фундаменту и анкеровка", icon: "rectangle.split.3x1", scene: .sill)
         s7.goal = "Отсечь каркас от влаги бетона и надёжно закрепить его к фундаменту."
         let sillM = ms { $0.kind == .sill }
         let anchors = F.anchors.count

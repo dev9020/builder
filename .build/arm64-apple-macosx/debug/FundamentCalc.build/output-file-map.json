@@ -32,6 +32,12 @@
     "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/CatalogView~partial.swiftmodule",
     "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/CatalogView.swiftdeps"
   },
+  "/Users/user/workspace/project/builder/Sources/FundamentCalc/Daylight.swift": {
+    "dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Daylight.d",
+    "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Daylight.swift.o",
+    "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Daylight~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Daylight.swiftdeps"
+  },
   "/Users/user/workspace/project/builder/Sources/FundamentCalc/Drainage.swift": {
     "dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Drainage.d",
     "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Drainage.swift.o",
@@ -205,6 +211,12 @@
     "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/SceneSite.swift.o",
     "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/SceneSite~partial.swiftmodule",
     "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/SceneSite.swiftdeps"
+  },
+  "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneStages.swift": {
+    "dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/SceneStages.d",
+    "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/SceneStages.swift.o",
+    "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/SceneStages~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/SceneStages.swiftdeps"
   },
   "/Users/user/workspace/project/builder/Sources/FundamentCalc/SidebarView.swift": {
     "dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/SidebarView.d",

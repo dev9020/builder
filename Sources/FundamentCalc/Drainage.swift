@@ -63,7 +63,7 @@ enum Drainage {
         let baseDepth: Double
         switch kind {
         case .strip: baseDepth = r.strip.depth + r.strip.cushion
-        case .slab: baseDepth = max(0.3, r.slab.t - 0.15 + p.slabCushion)
+        case .slab: baseDepth = max(0.3, r.slab.depth)
         case .piles: baseDepth = 0.8
         }
         let clayey = soil.d0 < 0.25 || soil.name.lowercased().contains("супесь")

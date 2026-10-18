@@ -44,6 +44,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Daylight.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Drainage.swift"
         },
         {
@@ -160,6 +164,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneStages.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/SidebarView.swift"
         },
         {
@@ -220,6 +228,7 @@
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/BuildView.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Calculator.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/CatalogView.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Daylight.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Drainage.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/DrainageView.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Drawings.swift.o",
@@ -249,6 +258,7 @@
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Scene3DView.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneBuilder.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneSite.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneStages.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SidebarView.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Slab.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Snapshot.swift.o",
@@ -314,6 +324,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/CatalogView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Daylight.swift.o"
         },
         {
           "kind" : "file",
@@ -433,6 +447,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneStages.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SidebarView.swift.o"
         },
         {
@@ -487,6 +505,7 @@
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/BuildView.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Calculator.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/CatalogView.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/Daylight.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Drainage.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/DrainageView.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Drawings.swift",
@@ -516,6 +535,7 @@
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Scene3DView.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneBuilder.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneSite.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneStages.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/SidebarView.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Slab.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Snapshot.swift",
@@ -551,6 +571,7 @@
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/BuildView.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Calculator.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/CatalogView.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/Daylight.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Drainage.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/DrainageView.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Drawings.swift",
@@ -580,6 +601,7 @@
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Scene3DView.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneBuilder.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneSite.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneStages.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/SidebarView.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Slab.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Snapshot.swift",
@@ -668,6 +690,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Daylight.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Drainage.swift"
         },
         {
@@ -784,6 +810,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneStages.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/SidebarView.swift"
         },
         {
@@ -855,6 +885,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/CatalogView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Daylight.swift.o"
         },
         {
           "kind" : "file",
@@ -971,6 +1005,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneSite.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneStages.swift.o"
         },
         {
           "kind" : "file",

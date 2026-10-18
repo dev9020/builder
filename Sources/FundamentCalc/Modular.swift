@@ -34,7 +34,7 @@ enum Module {
     static func isModular(_ v: Double, depth D: Double) -> Bool { abs(axis(v, depth: D, minN: 1) - v) < 0.004 }
 
     /// Положение левой стойки проёма на сетке: origin — начало сетки в координате стены
-    static func snapOpening(pos: Double, width: Double, origin: Double, length: Double, taken: [(Double, Double)]) -> Double? {
+    static func snapOpening(pos: Double, width: Double, origin: Double, length: Double, taken: [(Double, Double)], studs: [Double] = []) -> Double? {
         let r0 = pos - width / 2
         let k0 = ((r0 - 0.075 - origin) / step).rounded()
         func free(_ p: Double) -> Bool {
@@ -46,7 +46,14 @@ enum Module {
             let p = origin + (k0 + dk) * step + 0.075 + width / 2
             if free(p) { return p }
         }
-        // на сетку не встаёт — ближайшее свободное место
+        // на сетку не встаёт — стойка проёма на стойке примыкания перегородки (тоже без лишней стойки)
+        var byStud: [Double] = []
+        for s in studs {
+            let off = 0.075 + width / 2
+            for c in [s + off, s - off] where free(c) { byStud.append(c) }
+        }
+        if let p = byStud.min(by: { abs($0 - pos) < abs($1 - pos) }), abs(p - pos) < 1.0 { return p }
+        // иначе — ближайшее свободное место
         for d in stride(from: 0.0, through: length, by: 0.05) {
             for p in [pos - d, pos + d] where free(p) { return p }
         }
@@ -153,7 +160,9 @@ extension Project {
             var placed = false
             for blk in [first] + smaller {
                 let w = (blk.roW * 1000).rounded() / 1000
-                guard let pos = Module.snapOpening(pos: o.pos, width: w, origin: origin, length: len, taken: taken[o.host] ?? []) else { continue }
+                var studs: [Double] = []
+                if case .edge(let ei) = o.host, ei < ee.count { studs = Daylight.junctionStuds(self, edge: ei) }
+                guard let pos = Module.snapOpening(pos: o.pos, width: w, origin: origin, length: len, taken: taken[o.host] ?? [], studs: studs) else { continue }
                 o.width = w
                 o.height = (blk.roH * 1000).rounded() / 1000
                 if blk.kind.isDoor || blk.kind == .panoramic { o.sill = 0 }
@@ -191,12 +200,19 @@ extension Project {
         out.append(ModuleCheck(title: "Окна и двери — стандартные блоки", ok: nonStd == 0,
                                detail: nonStd == 0 ? "\(b.openings.count) проёмов, все под типовые размеры ГОСТ" : "\(nonStd) проём(ов) под заказ"))
         let off = openings.filter { o in
-            guard case .edge = o.host else { return false }
+            guard case .edge(let ei) = o.host else { return false }
             let g = (o.pos - o.width / 2 - 0.075 + D / 2) / Module.step
-            return abs(g - g.rounded()) > 0.01
+            if abs(g - g.rounded()) <= 0.01 { return false }
+            // стойка проёма совпала со стойкой примыкания перегородки — тоже без лишней стойки
+            let kings = [o.pos - o.width / 2 - 0.075, o.pos + o.width / 2 + 0.075]
+            return !Daylight.junctionStuds(self, edge: ei).contains { s in kings.contains { abs($0 - s) < 0.01 } }
         }.count
         out.append(ModuleCheck(title: "Стойки проёмов на сетке стоек", ok: off == 0,
                                detail: off == 0 ? "у каждого окна одна стойка — рядовая, лишних стоек меньше" : "\(off) проём(ов) не на сетке — лишние стойки и подрезка утеплителя"))
+        let dark = Daylight.issues(self)
+        out.append(ModuleCheck(title: "Естественный свет в комнатах и коридорах", ok: dark.isEmpty,
+                               detail: dark.isEmpty ? "окна жилых комнат ≥ 1/8 площади пола (\(N.sp55.code)), у коридоров и прихожих есть остекление"
+                                                    : dark.joined(separator: "; ") + " — добавьте окно (для прохода — узкое 600×1800)"))
         return out
     }
 }

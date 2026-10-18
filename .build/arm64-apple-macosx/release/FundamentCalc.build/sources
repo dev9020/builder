@@ -3,6 +3,7 @@
 /Users/user/workspace/project/builder/Sources/FundamentCalc/BuildView.swift
 /Users/user/workspace/project/builder/Sources/FundamentCalc/Calculator.swift
 /Users/user/workspace/project/builder/Sources/FundamentCalc/CatalogView.swift
+/Users/user/workspace/project/builder/Sources/FundamentCalc/Daylight.swift
 /Users/user/workspace/project/builder/Sources/FundamentCalc/Drainage.swift
 /Users/user/workspace/project/builder/Sources/FundamentCalc/DrainageView.swift
 /Users/user/workspace/project/builder/Sources/FundamentCalc/Drawings.swift
@@ -32,6 +33,7 @@
 /Users/user/workspace/project/builder/Sources/FundamentCalc/Scene3DView.swift
 /Users/user/workspace/project/builder/Sources/FundamentCalc/SceneBuilder.swift
 /Users/user/workspace/project/builder/Sources/FundamentCalc/SceneSite.swift
+/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneStages.swift
 /Users/user/workspace/project/builder/Sources/FundamentCalc/SidebarView.swift
 /Users/user/workspace/project/builder/Sources/FundamentCalc/Slab.swift
 /Users/user/workspace/project/builder/Sources/FundamentCalc/Snapshot.swift

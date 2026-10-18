@@ -29,6 +29,11 @@
     "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/CatalogView~partial.swiftmodule",
     "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/CatalogView.swiftdeps"
   },
+  "/Users/user/workspace/project/builder/Sources/FundamentCalc/Daylight.swift": {
+    "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Daylight.swift.o",
+    "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Daylight~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Daylight.swiftdeps"
+  },
   "/Users/user/workspace/project/builder/Sources/FundamentCalc/Drainage.swift": {
     "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Drainage.swift.o",
     "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Drainage~partial.swiftmodule",
@@ -173,6 +178,11 @@
     "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneSite.swift.o",
     "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneSite~partial.swiftmodule",
     "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneSite.swiftdeps"
+  },
+  "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneStages.swift": {
+    "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneStages.swift.o",
+    "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneStages~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneStages.swiftdeps"
   },
   "/Users/user/workspace/project/builder/Sources/FundamentCalc/SidebarView.swift": {
     "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SidebarView.swift.o",

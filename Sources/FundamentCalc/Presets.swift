@@ -14,6 +14,8 @@ struct HousePreset: Identifiable {
         build(p)
         p.sheathing = .osb
         p.fitToModule()
+        // тёмные коридоры и комнаты — дополнительные окна по месту
+        Daylight.improve(p)
     }
 
     /// Площадь застройки по осям стен и общая (с учётом этажей)
@@ -262,8 +264,8 @@ extension HousePreset {
             b.techWindow(1.5, 0)
             b.open(.panoramic, 9.5, 0, w: 2.5)
             b.open(.panoramic, 13, 3, w: 2.4)
-            b.open(.glassDoor, 9.5, 6, w: 2.8)
-            b.open(.panoramic, 12, 6, w: 1.4)
+            b.open(.glassDoor, 11.3, 6, w: 2.8)
+            b.open(.panoramic, 8.8, 6, w: 1.4)
             b.open(.panoramic, 6, 9.6, w: 2.0)
             b.open(.window, 1.6, 12, w: 1.5)
             b.open(.window, 0, 9.6, w: 1.5)
@@ -306,6 +308,8 @@ extension HousePreset {
             b.open(.glassDoor, 7, 1.75, w: 1.2)
             b.open(.door, 1.75, 8.3)
             b.open(.door, 5.25, 8.3)
+            // внутренняя комната без наружных стен — гардеробная/кладовая, ей окно не нужно
+            b.room(.storage, 5.7, 5.25)
         },
 
         // ───────── П-образные (плита, скатная кровля) ─────────
