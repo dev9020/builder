@@ -29,7 +29,9 @@ enum Snapshot {
             scene.rootNode.addChildNode(amb); scene.rootNode.addChildNode(sun)
             let cam = SCNNode(); cam.camera = SCNCamera(); cam.camera!.zNear = 0.05; cam.camera!.zFar = 500
             let (lo, hi) = Geo.bbox(p.rings)
-            let c = (lo + hi) / 2, d = (max(hi.x - lo.x, hi.y - lo.y) * 0.95 + 5) * k
+            var c = (lo + hi) / 2
+            let d = (max(hi.x - lo.x, hi.y - lo.y) * 0.95 + 5) * k
+            if let j = CommandLine.arguments.firstIndex(of: "--center"), let x = Double(CommandLine.arguments[j + 1]), let y = Double(CommandLine.arguments[j + 2]) { c = V2(x, y) }
             cam.position = SceneBuilder.v3(c + (back ? V2(-d * 0.6, d * 0.95) : V2(d * 0.75, -d * 0.9)), d * high)
             cam.look(at: SceneBuilder.v3(c, 1.5))
             scene.rootNode.addChildNode(cam)
@@ -124,7 +126,8 @@ enum Snapshot {
                 print(String(format: "stage_%02d", i), st.title, "—", st.note)
                 let kk = CommandLine.arguments.firstIndex(of: "--k").flatMap { Double(CommandLine.arguments[$0 + 1]) } ?? 0.75
                 if let only = CommandLine.arguments.firstIndex(of: "--only").flatMap({ Int(CommandLine.arguments[$0 + 1]) }), only != i { continue }
-                scene3D(String(format: "stage_%02d.png", i), o, high: st.stage.isFoundation ? 0.8 * kk / 0.75 : 0.6, k: kk)
+                let hh = CommandLine.arguments.firstIndex(of: "--high").flatMap { Double(CommandLine.arguments[$0 + 1]) }
+                scene3D(String(format: "stage_%02d.png", i), o, high: hh ?? (st.stage.isFoundation ? 0.8 * kk / 0.75 : 0.6), k: kk, back: CommandLine.arguments.contains("--back"))
             }
             if CommandLine.arguments.contains("--preset") { return }
             p.roofType = .hip; p.shape = .lShape

@@ -4,17 +4,16 @@ import simd
 typealias V3 = SIMD3<Double>
 
 enum Sheathing: String, CaseIterable, Identifiable {
-    case osb, osbBraces, braces
+    // постоянные врезные раскосы ставятся всегда — во всех стенах; выбор только — есть ли ОСП снаружи
+    case osbBraces, braces
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .osb: return "ОСП-3 9 мм снаружи (диафрагма жёсткости)"
-        case .osbBraces: return "ОСП-3 9 мм + врезные раскосы в углах"
-        case .braces: return "Врезные раскосы 25×100 + ветрозащита"
+        case .osbBraces: return "ОСП-3 9 мм + врезные раскосы 25×100"
+        case .braces: return "Только врезные раскосы 25×100 + ветрозащита"
         }
     }
     var hasOSB: Bool { self != .braces }
-    var hasBraces: Bool { self != .osb }
 }
 
 enum SillType: String, CaseIterable, Identifiable {
@@ -30,11 +29,14 @@ enum SillType: String, CaseIterable, Identifiable {
 
 /// Этапы для 3D-просмотра (в порядке работ на площадке)
 enum Stage3D: Int, CaseIterable, Identifiable, Comparable {
-    case site, markout, dig, cushion, formwork, rebar, concrete, backfill, sill, floor, walls, cap, upper, roof, battens, finish
+    case site, markout, dig, cushion, formwork, rebar, concrete, backfill, sill, floor, walls, cap, upper, roof, battens, cover,
+         windows, wrap, facade, insul, vapor, screed, lining, finish
     var id: Int { rawValue }
     static func < (a: Stage3D, b: Stage3D) -> Bool { a.rawValue < b.rawValue }
     /// Этапы нулевого цикла — фундамент ещё не готов
     var isFoundation: Bool { self >= .markout && self <= .backfill }
+    /// Работы внутри дома — фасад и кровля показываются полупрозрачными, чтобы было видно, что внутри
+    var isInterior: Bool { self >= .insul && self <= .lining }
     var title: String {
         switch self {
         case .site: return "Участок, обноска и оси"
@@ -51,7 +53,15 @@ enum Stage3D: Int, CaseIterable, Identifiable, Comparable {
         case .cap: return "Второй ряд верхней обвязки"
         case .upper: return "Перекрытия и верхние этажи"
         case .roof: return "Стропильная система"
-        case .battens: return "Контробрешётка и обрешётка"
+        case .battens: return "Мембрана, контробрешётка, обрешётка"
+        case .cover: return "Кровельное покрытие"
+        case .windows: return "Окна и наружные двери"
+        case .wrap: return "Ветрозащита стен"
+        case .facade: return "Вентзазор и фасад"
+        case .insul: return "Утепление стен и кровли"
+        case .vapor: return "Пароизоляция"
+        case .screed: return "Стяжка / основание пола"
+        case .lining: return "Внутренняя обшивка"
         case .finish: return "Готовый дом"
         }
     }
@@ -73,7 +83,7 @@ enum MemberKind: String, CaseIterable {
     case cripple = "Укороченная стойка"
     case topPlate = "Верхняя обвязка"
     case capPlate = "Верхняя обвязка (2-й ряд)"
-    case brace = "Раскос врезной"
+    case brace = "Раскос врезной (постоянный)"
     case tempBrace = "Временная укосина"
     case ceilingJoist = "Балка чердачного перекрытия"
     case rafter = "Стропильная нога"
@@ -81,6 +91,7 @@ enum MemberKind: String, CaseIterable {
     case ridge = "Коньковая доска"
     case girder = "Прогон (ригель) перекрытия"
     case collar = "Ригель (схватка)"
+    case windBrace = "Ветровая связь стропил"
     case tie = "Затяжка"
     case gableStud = "Стойка фронтона"
     case counterBatten = "Контробрешётка"
@@ -98,6 +109,7 @@ enum MemberKind: String, CaseIterable {
         case .brace: return (0.85, 0.40, 0.25)
         case .tempBrace: return (0.95, 0.25, 0.20)
         case .rafter, .hip, .collar, .tie: return (0.83, 0.66, 0.44)
+        case .windBrace: return (0.80, 0.45, 0.30)
         case .girder: return (0.60, 0.40, 0.22)
         case .ridge: return (0.70, 0.50, 0.30)
         case .counterBatten: return (0.62, 0.50, 0.36)
@@ -116,6 +128,7 @@ struct Member {
     var role = 0               // 0 — наружная стена/прочее, 1 — несущая перегородка, 2 — ненесущая
     var wall = -1              // индекс стены в Framing.walls (−1 — не стена)
     var storey = 0             // этаж; балки межэтажного перекрытия — этаж, который они несут
+    var seq = 0                // подшаг монтажа кровли (RoofSeq)
     var length: Double { simd_length(b - a) }
 }
 
@@ -131,6 +144,7 @@ struct WallFrame: Identifiable {
     var rects: [(kind: MemberKind, u0: Double, u1: Double, z0: Double, z1: Double)] = []
     var braces: [(u0: Double, z0: Double, u1: Double, z1: Double)] = []
     var openings: [(u0: Double, u1: Double, z0: Double, z1: Double, label: String)] = []
+    var kinds: [OpeningKind] = []       // тип блока для каждого проёма из openings
     var temps: [Double] = []            // где ставятся временные укосины (u)
     var origin = 0.0                    // начало сетки стоек (u), для наружных стен — наружный угол
     // положение в плане (для 3D: стена собирается лёжа на платформе и поднимается)
@@ -189,6 +203,11 @@ struct Framing {
     /// Порядок подъёма стен 1-го этажа (индексы в walls) с пояснением
     var erect: [(wall: Int, note: String)] = []
     var roofQd = 0.0, roofQn = 0.0
+}
+
+/// Подшаги монтажа стропильной системы (Member.seq у элементов этапа .roof) — в порядке работ
+enum RoofSeq {
+    static let joists = 0, endPairs = 1, ridge = 2, common = 3, hips = 4, jacks = 5, ties = 6, gable = 7
 }
 
 enum FrameGen {
@@ -677,7 +696,7 @@ enum FrameGen {
             return RO(r0: o.pos - o.width / 2, r1: o.pos + o.width / 2, zs: z0 + pt + o.sill, zt: min(z0 + pt + o.sill + o.height, zTopB - 0.15),
                       door: o.kind.isDoor || o.sill < 0.05, label: "\(o.kind.title) \(blk.mm)", o: o)
         }
-        for ro in ros { wf.openings.append((ro.r0 - s0, ro.r1 - s0, ro.zs - z0, ro.zt - z0, ro.label)) }
+        for ro in ros { wf.openings.append((ro.r0 - s0, ro.r1 - s0, ro.zs - z0, ro.zt - z0, ro.label)); wf.kinds.append(ro.o.kind) }
 
         // нижняя обвязка (вырезается в дверных проёмах)
         var cuts = ros.filter { $0.door }.map { ($0.r0, $0.r1) }.sorted { $0.0 < $1.0 }
@@ -751,9 +770,9 @@ enum FrameGen {
             }
         }
 
-        // раскосы — от углов под 45…60°: снаружи, если нет ОСП-диафрагмы (или выбраны «ОСП + раскосы»);
-        // во внутренних стенах — если изнутри нет листовой обшивки (вагонка не работает как диафрагма)
-        if (exterior && p.sheathing.hasBraces) || (!exterior && !p.interiorFinish.isDiaphragm) {
+        // постоянные раскосы — от углов под 45…60° в КАЖДОЙ стене (наружной и внутренней), независимо от обшивки:
+        // каркас не «складывается» ни до обшивки, ни если лист со временем ослабнет на гвоздях
+        do {
             let hgt = zTopB - (z0 + pt)
             // свободные от проёмов участки стены; в каждом — раскос, у торцов стены — от угла
             var free: [(Double, Double)] = []
@@ -812,7 +831,11 @@ enum FrameGen {
             var uu = stepU
             while uu < L - 0.05 {
                 let h = gh(uu) - 0.1
-                if h > 0.15 { F.members.append(Member(kind: .gableStud, sec: sec, a: v3(P(uu), zTop), b: v3(P(uu), zTop + h), up: n3, stage: .roof)) }
+                if h > 0.15 {
+                    var m = Member(kind: .gableStud, sec: sec, a: v3(P(uu), zTop), b: v3(P(uu), zTop + h), up: n3, stage: .roof)
+                    m.seq = RoofSeq.gable
+                    F.members.append(m)
+                }
                 uu += stepU
             }
         }
@@ -932,44 +955,95 @@ enum FrameGen {
             var k = ((cA + 0.1 - g) / step).rounded(.up)
             while k * step + g - cA < len - 0.1 { us.append(k * step + g - cA); k += 1 }
             us.append(len - 0.04)
-            var ends: [(u: Double, end: V3, run: Double)] = []
+            // за концами карниза — у внутреннего угла скат продолжается до конька соседнего крыла:
+            // там ендовые нарожники (от ендовой ноги к коньку), по той же сетке
+            var before: [Double] = [], after: [Double] = []
+            k = ((cA - g) / step).rounded(.down)
+            while k * step + g - cA > -30 { let u = k * step + g - cA; if u < -0.05 { before.insert(u, at: 0) }; k -= 1 }
+            k = ((cA + len - g) / step).rounded(.up)
+            while k * step + g - cA < len + 30 { let u = k * step + g - cA; if u > len + 0.05 { after.append(u) }; k += 1 }
+            us = before + us + after
+            var ends: [(u: Double, end: V3, run: Double, jack: Bool)] = []
+            var rIdx: [[Int]] = []          // элементы стропила для каждого из ends
             for u in us {
                 let P0 = e.a + d * u
-                guard face(P0 + e.n * 0.02) == ei else { continue }
-                var s = 0.02
+                let outside = u < 0 || u > len
+                var s0 = 0.0
+                if outside {
+                    // начало — на ендове: первая точка вглубь, где начинается свой скат
+                    guard Geo.contains(P0 + e.n * 0.3, rings) || Geo.contains(P0 + e.n * 3, rings) else { continue }
+                    var t = 0.02
+                    while t < 30, face(P0 + e.n * t) != ei { t += 0.02 }
+                    guard t < 30 else { continue }
+                    s0 = t
+                } else {
+                    guard face(P0 + e.n * 0.02) == ei else { continue }
+                    s0 = 0.05           // торец стропила — за лобовой доской
+                }
+                var s = max(s0, 0.02)
                 while s < 30, face(P0 + e.n * (s + 0.02)) == ei { s += 0.02 }
-                guard s > 0.15 else { continue }
+                guard s - s0 > 0.15 else { continue }
+                let Ps = P0 + e.n * s0
                 let P1 = P0 + e.n * s
-                let a3 = v3(P0, zc(P0, 0)), b3 = v3(P1, zc(P1, s))
+                let firstM = F.members.count
+                let a3 = v3(Ps, zc(Ps, s0)), b3 = v3(P1, zc(P1, s))
                 let up = simd_normalize(simd_cross(simd_cross(simd_normalize(b3 - a3), V3(0, 0, 1)), simd_normalize(b3 - a3)))
                 F.members.append(Member(kind: .rafter, sec: chk.sec, a: a3, b: b3, up: simd_dot(up, V3(0, 0, 1)) < 0 ? -up : up, stage: .roof))
                 if chk.count > 1 {
                     let side = V3(d.x, d.y, 0) * 0.05
                     F.members.append(Member(kind: .rafter, sec: chk.sec, a: a3 + side, b: b3 + side, up: simd_dot(up, V3(0, 0, 1)) < 0 ? -up : up, stage: .roof))
                 }
-                F.rafterLines.append((P0, P1))
+                rIdx.append(Array(firstM..<F.members.count))
+                F.rafterLines.append((Ps, P1))
                 // контробрешётка по стропилу
                 let rn = roofNormal(e.n)
                 let off = rn * (hR / 2 + F.counterSec.wm / 2)
                 F.members.append(Member(kind: .counterBatten, sec: F.counterSec, a: a3 + off, b: b3 + off, up: rn, stage: .battens))
-                ends.append((u, V3(P1.x, P1.y, zb(P1, s)), s))
+                ends.append((u, V3(P1.x, P1.y, zb(P1, s)), s, outside))
             }
             // конёк: соседние стропила одной высоты, концы на расстоянии шага
+            var onRidge = Set<Int>()
             for i in 1..<max(ends.count, 1) {
                 let a = ends[i - 1], b = ends[i]
                 guard abs(a.end.z - b.end.z) < 0.02, simd_length(a.end - b.end) < step + 0.1 else { continue }
+                onRidge.insert(i - 1); onRidge.insert(i)
                 let k = key(a.end, b.end)
                 guard !ridgeKeys.contains(k) else { continue }
                 ridgeKeys.insert(k)
                 let rs = Lumber(50, chk.sec.w + 50)
                 let za = a.end.z + hR / cosA - rs.wm / 2 + 0.02
-                F.members.append(Member(kind: .ridge, sec: rs, a: V3(a.end.x, a.end.y, za), b: V3(b.end.x, b.end.y, za), up: V3(0, 0, 1), stage: .roof))
+                var m = Member(kind: .ridge, sec: rs, a: V3(a.end.x, a.end.y, za), b: V3(b.end.x, b.end.y, za), up: V3(0, 0, 1), stage: .roof)
+                m.seq = RoofSeq.ridge
+                F.members.append(m)
                 F.ridgeLines.append((V2(a.end.x, a.end.y), V2(b.end.x, b.end.y)))
+            }
+            // порядок монтажа: крайние пары (по ним натягивают шнур) → конёк → рядовые → нарожники у рёбер вальмы
+            let jackSet = Set(ends.indices.filter { ends[$0].jack })
+            let cands = (onRidge.isEmpty ? Set(ends.indices) : onRidge).subtracting(jackSet).sorted()
+            for (i, idx) in rIdx.enumerated() {
+                let sq = cands.contains(i) ? (i == cands.first || i == cands.last ? RoofSeq.endPairs : RoofSeq.common) : RoofSeq.jacks
+                for j in idx { F.members[j].seq = sq }
+            }
+            // ветровые связи — доска 25×150 по низу стропил от карниза к коньку под ≈ 45°, от обоих торцов ската
+            if p.roofType == .gable || p.roofType == .shed, cands.count >= 4, let i0 = cands.first, let i1 = cands.last {
+                let run = ends[i0].run
+                let span = ends[i1].u - ends[i0].u
+                let L = min(run - 0.6, span / 2 - 0.1)
+                if L > 0.8 {
+                    for (u0, sg) in [(ends[i0].u, 1.0), (ends[i1].u, -1.0)] {
+                        let A = e.a + d * u0 + e.n * 0.3, B = e.a + d * (u0 + sg * L) + e.n * (0.3 + L)
+                        guard face(A) == ei, face(B) == ei else { continue }
+                        let za = zb(A, 0.3) - 0.0125 / cosA, zbB = zb(B, 0.3 + L) - 0.0125 / cosA
+                        var m = Member(kind: .windBrace, sec: Lumber(25, 150), a: v3(A, za), b: v3(B, zbB), up: roofNormal(e.n), stage: .roof)
+                        m.seq = RoofSeq.ties
+                        F.members.append(m)
+                    }
+                }
             }
             // отдельные затяжки, если балки чердачного перекрытия идут поперёк стропил
             if F.separateTies && p.roofType == .gable {
                 let zt = F.wallTop + (F.attic?.check.sec.wm ?? 0.2)
-                for en in ends where en.run > 0.5 {
+                for en in ends where en.run > 0.5 && !en.jack {
                     let base = V2(en.end.x, en.end.y) - e.n * en.run
                     let da = (d.x < -0.5 || (abs(d.x) < 0.5 && d.y < 0)) ? -d : d
                     let a2 = base + da * 0.05 + e.n * (faceDepth), b2 = V2(en.end.x, en.end.y) + da * 0.05
@@ -977,12 +1051,14 @@ enum FrameGen {
                     let k = key(a3, b3)
                     guard !ridgeKeys.contains(k), !ridgeKeys.contains(key(b3, a3)) else { continue }
                     ridgeKeys.insert(k)
-                    F.members.append(Member(kind: .tie, sec: Lumber(50, 150), a: a3, b: b3, up: V3(0, 0, 1), stage: .roof))
+                    var m = Member(kind: .tie, sec: Lumber(50, 150), a: a3, b: b3, up: V3(0, 0, 1), stage: .roof)
+                    m.seq = RoofSeq.ties
+                    F.members.append(m)
                 }
             }
             // ригели (схватки) двускатной кровли на 1/3 высоты от конька
             if p.roofType == .gable {
-                for en in ends where ends.contains(where: { abs($0.end.z - en.end.z) < 0.02 && $0.u != en.u }) {
+                for en in ends where !en.jack && ends.contains(where: { abs($0.end.z - en.end.z) < 0.02 && $0.u != en.u }) {
                     let rise = en.end.z - F.wallTop
                     guard rise > 1.2 else { continue }
                     let dz = rise / 3
@@ -993,7 +1069,9 @@ enum FrameGen {
                     let k = key(a3, b3)
                     guard !ridgeKeys.contains(k) else { continue }
                     ridgeKeys.insert(k)
-                    F.members.append(Member(kind: .collar, sec: Lumber(50, 150), a: a3, b: b3, up: V3(0, 0, 1), stage: .roof))
+                    var m = Member(kind: .collar, sec: Lumber(50, 150), a: a3, b: b3, up: V3(0, 0, 1), stage: .roof)
+                    m.seq = RoofSeq.ties
+                    F.members.append(m)
                 }
             }
             // обрешётка параллельно карнизу
@@ -1046,7 +1124,9 @@ enum FrameGen {
                 let up = simd_normalize(simd_cross(simd_cross(dir3, V3(0, 0, 1)), dir3))
                 let side = V3(perp.x, perp.y, 0) * 0.025
                 for s in [-1.0, 1.0] {
-                    F.members.append(Member(kind: .hip, sec: chk.sec, a: a3 + side * s, b: b3 + side * s, up: up.z < 0 ? -up : up, stage: .roof))
+                    var m = Member(kind: .hip, sec: chk.sec, a: a3 + side * s, b: b3 + side * s, up: up.z < 0 ? -up : up, stage: .roof)
+                    m.seq = RoofSeq.hips
+                    F.members.append(m)
                 }
             }
             start += n

@@ -9,7 +9,7 @@ struct FundamentApp: App {
         if CommandLine.arguments.contains("--presets") {
             for pr in HousePreset.all {
                 let p0 = Project()
-                pr.build(p0); p0.sheathing = .osb; p0.fitToModule()
+                pr.build(p0); p0.sheathing = .osbBraces; p0.fitToModule()
                 for c in Daylight.improve(p0) { print("   свет: \(c.room) — \(c.text)") }
                 for i in Daylight.issues(p0) { print("   ТЕМНО: \(i)") }
                 for o in p0.openings {
@@ -81,6 +81,52 @@ struct FundamentApp: App {
             let b = BuildPlan.make(p, r)
             let F = b.frame
             print("элементов каркаса: \(F.members.count), стен: \(F.walls.count), анкеров: \(F.anchors.count)")
+            if CommandLine.arguments.contains("--roofcheck") {
+                // скачки высоты ската и рёбра без стропил
+                let o = p.overhang
+                let m = RoofModel.of(p, overhang: o)
+                let rings = p.rings.enumerated().map { i, rr in Geo.offset(rr, by: i == 0 ? o : -o) }
+                let (lo, hi) = Geo.bbox(rings)
+                let h = 0.05
+                var jumps = 0
+                var y = lo.y + h / 2
+                while y < hi.y {
+                    var x = lo.x + h / 2
+                    while x < hi.x {
+                        let v = V2(x, y)
+                        if Geo.contains(v, rings), let d0 = m.depth(v) {
+                            for w in [V2(x + h, y), V2(x, y + h)] where Geo.contains(w, rings) {
+                                if let d1 = m.depth(w), abs(d1.d - d0.d) > h * 1.5 {
+                                    jumps += 1
+                                    if jumps <= 30 { print("  скачок \(fmt(v.x, 2)),\(fmt(v.y, 2)) → \(fmt(w.x, 2)),\(fmt(w.y, 2)): \(fmt(d0.d, 2))/e\(d0.edge) → \(fmt(d1.d, 2))/e\(d1.edge)") }
+                                }
+                            }
+                        }
+                        x += h
+                    }
+                    y += h
+                }
+                print("скачков: \(jumps)")
+                // участки ската без стропил: точка дальше 0.45 м от ближайшего стропила/диагональной ноги
+                var holes = 0
+                y = lo.y + 0.1
+                while y < hi.y {
+                    var x = lo.x + 0.1
+                    while x < hi.x {
+                        let v = V2(x, y)
+                        if Geo.contains(v, rings) {
+                            let dmin = F.rafterLines.map { Geo.distToSegment(v, $0.0, $0.1) }.min() ?? 99
+                            let hips = F.members.filter { $0.kind == .hip }.map { Geo.distToSegment(v, V2($0.a.x, $0.a.y), V2($0.b.x, $0.b.y)) }.min() ?? 99
+                            if min(dmin, hips) > 0.45 { holes += 1; if holes <= 20 { print("  без стропил: \(fmt(x, 2)),\(fmt(y, 2))") } }
+                        }
+                        x += 0.2
+                    }
+                    y += 0.2
+                }
+                print("точек без стропил: \(holes)")
+                for (i, e) in m.edges.enumerated() { print("  e\(i) \(fmt(e.a.x)),\(fmt(e.a.y))→\(fmt(e.b.x)),\(fmt(e.b.y)) eave=\(e.eave)") }
+                for (a, b) in F.ridgeLines { print("  конёк \(fmt(a.x)),\(fmt(a.y))→\(fmt(b.x)),\(fmt(b.y))") }
+            }
             if CommandLine.arguments.contains("--walls") {
                 for w in F.walls where w.storey == 0 {
                     let xs = w.rects.filter { [.stud, .cornerStud, .king, .jack].contains($0.kind) }.map { "\($0.kind == .stud ? "" : String($0.kind.rawValue.prefix(3)))\(Int((($0.u0 + $0.u1) / 2 * 1000).rounded()))" }
@@ -223,7 +269,7 @@ struct ContentView: View {
                 case .plan: PlanEditorView().environmentObject(editor)
                 case .results: ResultsView()
                 case .works: WorksView()
-                case .build: BuildView(show3D: { st in options.stage = st; options.sub = Int.max; tab = .view3D })
+                case .build: BuildView(show3D: { st, sub in options.stage = st; options.sub = sub; tab = .view3D })
                 }
             }
             .frame(minWidth: 640, maxWidth: .infinity, maxHeight: .infinity)
@@ -308,7 +354,7 @@ struct ContentView: View {
             VStack {
                 let steps = Steps3D.make(project, model.results, model.plan.frame)
                 let cur = steps.firstIndex { $0.stage == options.stage && $0.sub == options.sub }
-                    ?? steps.firstIndex { $0.stage == options.stage } ?? steps.count - 1
+                    ?? steps.lastIndex { $0.stage == options.stage } ?? steps.count - 1
                 let go = { (i: Int) in let s = steps[max(0, min(steps.count - 1, i))]; options.stage = s.stage; options.sub = s.sub }
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {

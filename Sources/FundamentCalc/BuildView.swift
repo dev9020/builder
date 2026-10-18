@@ -5,7 +5,7 @@ import PDFKit
 struct BuildView: View {
     @EnvironmentObject var model: AppModel
     @EnvironmentObject var p: Project
-    var show3D: (Stage3D) -> Void = { _ in }
+    var show3D: (Stage3D, Int) -> Void = { _, _ in }
     @State private var sel = 0          // ≥ 0 — этап, −1 — сводка и закупка, −2 — нормативы, −3 — стандартные материалы, −4 — соединения
     @State private var pdf: Data?
     @State private var busy = false
@@ -101,12 +101,29 @@ struct BuildView: View {
         HStack(alignment: .firstTextBaseline) {
             Label("Этап \(s.number). \(s.title)", systemImage: s.icon).font(.title2.bold())
             Spacer()
-            if plainStage == nil { Button { show3D(s.scene) } label: { Label("Показать в 3D", systemImage: "cube.transparent") } }
+            if plainStage == nil { Button { show3D(s.scene, Int.max) } label: { Label("Показать в 3D", systemImage: "cube.transparent") } }
         }
         Text(s.goal).foregroundStyle(.secondary)
         if !s.when.isEmpty {
             Label { Text("Когда: ").bold() + Text(s.when) } icon: { Image(systemName: "clock").foregroundStyle(.blue) }
                 .font(.callout).fixedSize(horizontal: false, vertical: true)
+        }
+        let all3D = Steps3D.make(p, model.results, b.frame)
+        let shots = all3D.enumerated().filter { $0.element.stage == s.scene }
+        if shots.count > 1 {
+            GroupBox("Шаги на 3D-модели (вкладка «3D», бегунок «Этап»)") {
+                VStack(alignment: .leading, spacing: 5) {
+                    ForEach(shots, id: \.offset) { k, st in
+                        HStack(alignment: .top, spacing: 8) {
+                            Button { show3D(st.stage, st.sub) } label: { Image(systemName: "cube.transparent") }
+                                .buttonStyle(.borderless).help("Открыть этот шаг в 3D")
+                            (Text("Шаг \(k + 1). \(st.title). ").bold() + Text(st.note).foregroundColor(.secondary))
+                                .font(.callout).fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading).padding(6)
+            }
         }
         GroupBox("Порядок работ") {
             VStack(alignment: .leading, spacing: 7) {

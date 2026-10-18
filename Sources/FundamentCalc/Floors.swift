@@ -179,7 +179,7 @@ enum FloorWorks {
     /// Этап «Основание пола и тёплый пол»
     static func baseStage(_ p: Project, _ r: CalcResults, area: Double, perim: Double) -> BuildStage {
         let s = p.floorSystemEff
-        var st = BuildStage(title: s == .osbJoists && p.floorHeating == .none ? "Пол: подготовка основания" : "Пол: \(s.short)\(p.floorHeating == .none ? "" : " и тёплый пол")", icon: "square.grid.4x3.fill", scene: .finish)
+        var st = BuildStage(title: s == .osbJoists && p.floorHeating == .none ? "Пол: подготовка основания" : "Пол: \(s.short)\(p.floorHeating == .none ? "" : " и тёплый пол")", icon: "square.grid.4x3.fill", scene: .screed)
         st.goal = "Сделать ровное основание под чистовой пол\(p.floorHeating == .none ? "" : " с тёплым полом"). Этап — после кровли, окон, черновой инженерки и утепления стен, но до обшивки стен."
         let ha = heatedArea(p, r)
         let n = loops(ha)

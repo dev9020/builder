@@ -699,7 +699,7 @@ enum Drawings {
         s.box(0, h - 0.1, L, h, fill: color(.topPlate))
         var x = 0.0
         while x <= L - 0.05 { s.box(x, 0.05, x + 0.05, h - 0.1, fill: color(.stud), stroke: .gray, w: 0.3); x += c.p.studStep }
-        if c.p.sheathing.hasBraces {
+        do {
             s.line(V2(0.1, 0.05), V2(0.1 + (h - 0.15) * 0.75, h - 0.1), 3, color(.brace))
             s.leader(V2(0.1 + (h - 0.15) * 0.37, h / 2), V2(1.6, h + 0.15), "Раскос 25×100 врезной, 45–60°, по 2 гвоздя 4×100 в каждую стойку")
         }

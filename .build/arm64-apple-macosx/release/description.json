@@ -160,6 +160,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneEnvelope.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneSite.swift"
         },
         {
@@ -257,6 +261,7 @@
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Rooms.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Scene3DView.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneBuilder.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneEnvelope.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneSite.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneStages.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SidebarView.swift.o",
@@ -442,6 +447,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneEnvelope.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneSite.swift.o"
         },
         {
@@ -533,6 +542,7 @@
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Rooms.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Scene3DView.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneBuilder.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneEnvelope.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneSite.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneStages.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/SidebarView.swift",
@@ -599,6 +609,7 @@
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Rooms.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Scene3DView.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneBuilder.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneEnvelope.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneSite.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneStages.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/SidebarView.swift",
@@ -804,6 +815,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneEnvelope.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneSite.swift"
         },
         {
@@ -999,6 +1014,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneBuilder.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneEnvelope.swift.o"
         },
         {
           "kind" : "file",

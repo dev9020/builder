@@ -206,6 +206,12 @@
     "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/SceneBuilder~partial.swiftmodule",
     "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/SceneBuilder.swiftdeps"
   },
+  "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneEnvelope.swift": {
+    "dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/SceneEnvelope.d",
+    "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/SceneEnvelope.swift.o",
+    "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/SceneEnvelope~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/SceneEnvelope.swiftdeps"
+  },
   "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneSite.swift": {
     "dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/SceneSite.d",
     "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/SceneSite.swift.o",

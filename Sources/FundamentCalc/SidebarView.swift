@@ -145,6 +145,8 @@ struct SidebarView: View {
             Picker("Жёсткость стен", selection: $p.sheathing) {
                 ForEach(Sheathing.allCases) { Text($0.title).tag($0) }
             }
+            Text("Постоянные врезные раскосы 25×100 ставятся во всех стенах всегда — каркас не сложится ни до обшивки, ни после.")
+                .font(.caption).foregroundStyle(.secondary)
             if p.selectedFoundation != .slab {
                 Picker("Обвязка по фундаменту", selection: $p.sillType) {
                     ForEach(SillType.allCases) { Text($0.title).tag($0) }
@@ -190,7 +192,7 @@ struct SidebarView: View {
                 ForEach(InteriorFinish.allCases) { Text($0.title).tag($0) }
             }
             if !p.interiorFinish.isDiaphragm {
-                Text("Вагонка не держит стену от перекоса — во внутренние стены будут добавлены врезные раскосы.").font(.caption).foregroundStyle(.orange)
+                Text("Вагонка не держит стену от перекоса — жёсткость дают постоянные врезные раскосы (они стоят во всех стенах).").font(.caption).foregroundStyle(.orange)
             }
         }
     }

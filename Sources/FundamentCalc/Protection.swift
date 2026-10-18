@@ -341,7 +341,7 @@ enum Protection {
 
     static func ventilation(_ p: Project, _ b: BuildPlan) -> BuildStage {
         let v = VentPlan.make(p, b.layout)
-        var s = BuildStage(title: "Вентиляция: расчёт воздухообмена и каналы", icon: "wind", scene: .finish)
+        var s = BuildStage(title: "Вентиляция: расчёт воздухообмена и каналы", icon: "wind", scene: .facade)
         s.goal = "Удалять влагу из дома: каркасный дом герметичен, без притока и вытяжки влажность растёт, плесневеют углы, мокнут утеплитель и окна."
         s.when = "каналы и проходки — вместе с черновой инженеркой, до утеплителя и пароизоляции изнутри; отверстия клапанов — до фасада"
         let rise = p.roofType == .flat ? 0.5 : tan(p.roofAngleEff * .pi / 180) * max(b.frame.rafterRun, 0.5)

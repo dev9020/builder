@@ -5,7 +5,7 @@ enum StagesExtra {
     // MARK: - Черновые инженерные сети
 
     static func engineering(_ p: Project, _ r: CalcResults, _ L: HouseLayout) -> BuildStage {
-        var s = BuildStage(title: "Инженерные сети: черновой монтаж", icon: "bolt.horizontal", scene: .finish)
+        var s = BuildStage(title: "Инженерные сети: черновой монтаж", icon: "bolt.horizontal", scene: .facade)
         let metalRoof = p.roofType != .flat && [.metalTile, .profiledSheet, .seam].contains(p.covering)
         let b0 = p.floorHeight * Double(max(p.floors, 1)) + 3
         s.goal = "Проложить электрику, воду, канализацию и вентиляцию, пока стены открыты изнутри — до утеплителя и пароизоляции."
@@ -62,7 +62,7 @@ enum StagesExtra {
     static func interior(_ p: Project, _ r: CalcResults, _ b: BuildPlan) -> BuildStage {
         let F = b.frame
         let fin = p.interiorFinish
-        var s = BuildStage(title: "Внутренняя обшивка: \(fin.short)", icon: "rectangle.portrait", scene: .finish)
+        var s = BuildStage(title: "Внутренняя обшивка: \(fin.short)", icon: "rectangle.portrait", scene: .lining)
         s.goal = "Закрыть стены и потолки изнутри."
         s.when = p.floorSystemEff == .semiDry ? "через 3 суток после полусухой стяжки (стены обшиваются уже от уровня стяжки)" : "после пароизоляции и обрешётки, до чистового пола"
         let floors = max(p.floors, 1)
@@ -86,7 +86,7 @@ enum StagesExtra {
             s.guides = Guides.finish
         case .boards:
             s.steps = [
-                "Вагонка/имитация бруса — НЕ диафрагма: доски на кляммерах не держат стену от перекоса. Поэтому во внутренних стенах и перегородках этого проекта стоят врезные раскосы 25×100 (см. развёртки стен и схему жёсткости), снаружи — ОСП\(p.sheathing.hasBraces ? " и раскосы" : "").",
+                "Вагонка/имитация бруса — НЕ диафрагма: доски на кляммерах не держат стену от перекоса. Жёсткость дают постоянные врезные раскосы 25×100, которые в этом проекте стоят во ВСЕХ стенах (см. развёртки стен и схему жёсткости)\(p.sheathing.hasOSB ? ", снаружи дополнительно — ОСП" : "").",
                 "Доски 14×96×3000 — вертикально по горизонтальной обрешётке 25×50 шаг 600: длина доски 3000 = высота стены без подрезки; зазор 10 мм у пола закрывает плинтус, у потолка — галтель.",
                 "Влажность досок ≤ 12 %, акклиматизация 2–3 суток в доме. Первую доску — по отвесу, пазом к углу.",
                 "Крепление — кляммеры в паз (каждая рейка обрешётки) + оцинкованные гвозди 2×20 или финишные гвозди 1.2×30 в шип под 45° (нейлер-финишер).",

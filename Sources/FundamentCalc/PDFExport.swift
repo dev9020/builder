@@ -137,6 +137,34 @@ final class PDFWriter {
         y += height + 6
     }
 
+    /// Сетка 3D-кадров по шагам: номер, заголовок и пояснение под каждым кадром
+    func imageGrid(_ cells: [(img: CGImage, title: String, note: String)], cols: Int = 2) {
+        let gap: CGFloat = 10
+        let cw = (contentW - gap * CGFloat(cols - 1)) / CGFloat(cols)
+        for row in stride(from: 0, to: cells.count, by: cols) {
+            let rowCells = Array(cells[row..<min(row + cols, cells.count)])
+            let caps = rowCells.map { c -> NSAttributedString in
+                let a = NSMutableAttributedString(attributedString: attr(c.title, size: 7.6, bold: true))
+                a.append(attr("\n" + c.note, size: 6.8, color: .darkGray))
+                return a
+            }
+            let ih = cw * 0.6
+            let ch = caps.map { height($0, cw) }.max() ?? 0
+            ensure(ih + ch + 10)
+            for (k, c) in rowCells.enumerated() {
+                let x = M + CGFloat(k) * (cw + gap)
+                let r = CGRect(x: x, y: y, width: cw, height: ih)
+                ctx.saveGState()
+                ctx.translateBy(x: r.minX, y: r.maxY); ctx.scaleBy(x: 1, y: -1)
+                ctx.draw(c.img, in: CGRect(origin: .zero, size: r.size))
+                ctx.restoreGState()
+                ctx.setStrokeColor(NSColor(white: 0.8, alpha: 1).cgColor); ctx.setLineWidth(0.5); ctx.stroke(r)
+                caps[k].draw(with: CGRect(x: x, y: y + ih + 3, width: cw, height: ch + 2), options: [.usesLineFragmentOrigin])
+            }
+            y += ih + ch + 10
+        }
+    }
+
     func finish() -> Data {
         if open { endPage() }
         ctx.closePDF()
@@ -147,10 +175,10 @@ final class PDFWriter {
 enum PDFExport {
     /// 3D-вид этапа в JPEG (сохраняет DCT-сжатие в PDF)
     @MainActor
-    static func render3D(_ p: Project, _ r: CalcResults, stage: Stage3D, size: CGSize = CGSize(width: 1200, height: 720)) -> CGImage? {
+    static func render3D(_ p: Project, _ r: CalcResults, stage: Stage3D, sub: Int = Int.max, size: CGSize = CGSize(width: 1200, height: 720)) -> CGImage? {
         let scene = SCNScene()
         scene.background.contents = NSColor(srgbRed: 0.86, green: 0.91, blue: 0.96, alpha: 1)
-        var o = SceneOptions(); o.stage = stage; o.site = stage == .finish
+        var o = SceneOptions(); o.stage = stage; o.sub = sub; o.site = stage == .finish
         scene.rootNode.addChildNode(SceneBuilder.build(p, r, o))
         let amb = SCNNode(); amb.light = SCNLight(); amb.light!.type = .ambient; amb.light!.intensity = 350
         let sun = SCNNode(); sun.light = SCNLight(); sun.light!.type = .directional; sun.light!.intensity = 1100
@@ -158,8 +186,9 @@ enum PDFExport {
         scene.rootNode.addChildNode(amb); scene.rootNode.addChildNode(sun)
         let cam = SCNNode(); cam.camera = SCNCamera(); cam.camera!.zNear = 0.05; cam.camera!.zFar = 500
         let (lo, hi) = Geo.bbox(p.rings)
-        let c = (lo + hi) / 2, d = (max(hi.x - lo.x, hi.y - lo.y) * 0.95 + 5) * (stage == .finish ? 0.95 : 0.75)
-        cam.position = SceneBuilder.v3(c + V2(d * 0.75, -d * 0.9), d * (stage <= .backfill ? 0.85 : 0.6))
+        let c = (lo + hi) / 2, d = (max(hi.x - lo.x, hi.y - lo.y) * 0.95 + 5) * (stage == .finish ? 0.95 : stage.isInterior ? 0.6 : 0.75)
+        // внутренние работы — сверху, через полупрозрачную кровлю
+        cam.position = SceneBuilder.v3(c + V2(d * 0.75, -d * 0.9), d * (stage <= .backfill ? 0.85 : stage.isInterior ? 1.25 : 0.6))
         cam.look(at: SceneBuilder.v3(c, stage <= .backfill ? 0 : 1.5))
         scene.rootNode.addChildNode(cam)
         let rnd = SCNRenderer(device: MTLCreateSystemDefaultDevice(), options: nil)
@@ -257,17 +286,35 @@ enum PDFExport {
         w.numbered(rg.steps)
 
         // --- Этапы ---
-        var lastScene: Stage3D? = nil
+        var shownScenes = Set<Stage3D>()
+        let steps3D = Steps3D.make(p, r, b.frame)
         var shownWalls = Set<Int>()
         for s in b.stages {
             w.newPage()
             w.heading("Этап \(s.number). \(s.title)")
             w.text(s.goal, size: 9.5, italic: true, color: .darkGray, after: 4)
             if !s.when.isEmpty { w.text("Когда: " + s.when, size: 8.5, color: NSColor(srgbRed: 0.1, green: 0.3, blue: 0.6, alpha: 1), after: 6) }
-            if s.scene != lastScene, let img = render3D(p, r, stage: s.scene, size: CGSize(width: 1100, height: 560)) {
-                w.image(img, height: 200)
-                w.text("3D: этап «\(s.scene.title)»", size: 7.5, italic: true, color: .gray, after: 6)
-                lastScene = s.scene
+            if !shownScenes.contains(s.scene) {
+                shownScenes.insert(s.scene)
+                // все шаги этого 3D-этапа по порядку (как на бегунке «Этап» во вкладке 3D); длинные серии — выборочно
+                var shots = steps3D.filter { $0.stage == s.scene }
+                if shots.count > 8 {
+                    let n = shots.count
+                    shots = (0..<8).map { shots[Int((Double($0) * Double(n - 1) / 7).rounded())] }
+                }
+                if shots.count > 1 {
+                    w.heading("Как это выглядит на площадке — по шагам (3D)", level: 2)
+                    let cells = shots.compactMap { st -> (img: CGImage, title: String, note: String)? in
+                        guard let img = render3D(p, r, stage: st.stage, sub: st.sub, size: CGSize(width: 760, height: 456)) else { return nil }
+                        let n = (steps3D.firstIndex(of: st) ?? 0) + 1
+                        return (img, "Шаг \(n). \(st.title)", st.note)
+                    }
+                    w.imageGrid(cells)
+                } else if let img = render3D(p, r, stage: s.scene, size: CGSize(width: 1100, height: 560)) {
+                    w.image(img, height: 200)
+                    let note = shots.first.map { "Шаг \((steps3D.firstIndex(of: $0) ?? 0) + 1). \($0.title) — \($0.note)" } ?? "3D: этап «\(s.scene.title)»"
+                    w.text(note, size: 7.5, italic: true, color: .gray, after: 6)
+                }
             }
             w.heading("Порядок работ", level: 2)
             w.numbered(s.steps)

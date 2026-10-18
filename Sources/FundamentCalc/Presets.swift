@@ -12,7 +12,7 @@ struct HousePreset: Identifiable {
     /// Проект строится и сразу подгоняется под модуль стандартных материалов
     func apply(_ p: Project) {
         build(p)
-        p.sheathing = .osb
+        p.sheathing = .osbBraces
         p.fitToModule()
         // тёмные коридоры и комнаты — дополнительные окна по месту
         Daylight.improve(p)

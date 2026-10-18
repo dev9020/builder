@@ -200,6 +200,8 @@ enum SceneBuilder {
 
     static func buildFrame(_ p: Project, _ r: CalcResults, _ stage: Stage3D, _ sub: Int, _ root: SCNNode) {
         let F = FrameGen.make(p, r)
+        var shown = Set<Int>()
+        defer { envelope(p, F, stage, sub, shown: shown, root) }
         // стены 1-го этажа: первые sub — подняты, следующая — собрана лёжа на платформе
         var raised = Set<Int>(), lying = -1
         if stage == .walls {
@@ -216,11 +218,15 @@ enum SceneBuilder {
                 if m.stage == .walls { return (stage == .walls && raised.contains(m.wall)) || stage == .cap }
                 return m.stage == stage && upperStep(m) <= sub
             }
+            // под покрытием обрешётку не видно — не рисуем
+            if stage >= .cover && (m.kind == .batten || m.kind == .counterBatten) { return false }
             if m.stage < stage { return true }
             if m.stage > stage { return false }
             switch stage {
             case .walls: return m.kind != .capPlate && (m.wall < 0 || raised.contains(m.wall) || m.wall == lying)
             case .upper: return upperStep(m) <= sub
+            case .roof: return m.seq <= sub
+            case .battens: return m.kind == .counterBatten ? sub >= 1 : sub >= 2
             default: return true
             }
         }
@@ -236,8 +242,11 @@ enum SceneBuilder {
         }
         var groups: [MemberKind: SCNNode] = [:]
         var mats: [MemberKind: SCNMaterial] = [:]
+        // на внутренних работах кровля полупрозрачная — видно, что делается в доме
+        let roofKinds: Set<MemberKind> = [.rafter, .hip, .ridge, .collar, .tie, .windBrace, .counterBatten, .batten, .ceilingJoist, .girder, .gableStud]
         for m0 in F.members {
             guard visible(m0) else { continue }
+            if m0.wall >= 0 && m0.wall != lying && m0.kind != .tempBrace { shown.insert(m0.wall) }
             var m = m0
             if stage == .walls && m.wall == lying && m.wall >= 0 {
                 let w = F.walls[m.wall]
@@ -246,7 +255,7 @@ enum SceneBuilder {
             let mat0: SCNMaterial
             if let mm = mats[m.kind] { mat0 = mm } else {
                 let c = m.kind.rgb
-                let mm = mat(rgb(c.0, c.1, c.2))
+                let mm = mat(rgb(c.0, c.1, c.2), stage.isInterior && (roofKinds.contains(m.kind) || m.stage == .roof) ? 0.15 : 1)
                 mats[m.kind] = mm; mat0 = mm
             }
             let L = m.length
@@ -474,74 +483,10 @@ enum SceneBuilder {
         let model = RoofModel.of(p, overhang: o)
         let rings = p.rings.enumerated().map { i, r in Geo.offset(r, by: i == 0 ? o : -o) }
         let base = wallTop + model.lift - o * model.tanA
-        func z(_ v: V2) -> Double { base + model.tanA * (model.depth(v)?.d ?? 0) }
-        let cosA = 1 / (1 + model.tanA * model.tanA).squareRoot()
-        let (lo, hi) = Geo.bbox(rings)
-        let g = max(0.1, (Geo.area(rings) / 9000).squareRoot())
-        func axis(_ a: Double, _ b: Double, _ extra: [Double]) -> [Double] {
-            var v = Array(stride(from: a, through: b, by: g)) + extra + [b]
-            v.sort()
-            return v.reduce(into: [Double]()) { acc, x in if acc.isEmpty || x - acc.last! > 1e-4 { acc.append(x) } }
-        }
-        let xs = axis(lo.x, hi.x, rings.flatMap { $0.map(\.x) })
-        let ys = axis(lo.y, hi.y, rings.flatMap { $0.map(\.y) })
-        var hcache = [[Double]](repeating: [Double](repeating: 0, count: ys.count), count: xs.count)
-        for i in xs.indices { for j in ys.indices { hcache[i][j] = z(V2(xs[i], ys[j])) } }
-        var verts: [SCNVector3] = [], norms: [SCNVector3] = [], uvs: [CGPoint] = [], idx: [Int32] = []
-        func tri(_ q: [V2], _ hz: [Double]) {
-            let cen = (q[0] + q[1] + q[2]) / 3
-            guard let face = model.depth(cen) else { return }
-            let e = model.edges[face.edge]
-            let ed = (e.b - e.a).unit
-            let a3 = f3(q[0], hz[0]), b3 = f3(q[1], hz[1]), c3 = f3(q[2], hz[2])
-            var n = simd_normalize(simd_cross(b3 - a3, c3 - a3))
-            if n.y < 0 { n = -n }
-            for (v, h) in zip(q, hz) {
-                verts.append(SCNVector3(f3(v, h)))
-                norms.append(SCNVector3(n))
-                uvs.append(CGPoint(x: dot2(v - e.a, ed), y: dot2(v - e.a, e.n) / cosA))
-                idx.append(Int32(idx.count))
-            }
-        }
-        for i in 0..<(xs.count - 1) {
-            for j in 0..<(ys.count - 1) {
-                let c = V2((xs[i] + xs[i + 1]) / 2, (ys[j] + ys[j + 1]) / 2)
-                guard Geo.contains(c, rings) else { continue }
-                let v00 = V2(xs[i], ys[j]), v10 = V2(xs[i + 1], ys[j]), v11 = V2(xs[i + 1], ys[j + 1]), v01 = V2(xs[i], ys[j + 1])
-                let h00 = hcache[i][j], h10 = hcache[i + 1][j], h11 = hcache[i + 1][j + 1], h01 = hcache[i][j + 1]
-                let hc = z(c)
-                if abs((h00 + h11) / 2 - hc) <= abs((h10 + h01) / 2 - hc) {
-                    tri([v00, v10, v11], [h00, h10, h11]); tri([v00, v11, v01], [h00, h11, h01])
-                } else {
-                    tri([v00, v10, v01], [h00, h10, h01]); tri([v10, v11, v01], [h10, h11, h01])
-                }
-            }
-        }
-        let geo = SCNGeometry(sources: [SCNGeometrySource(vertices: verts), SCNGeometrySource(normals: norms), SCNGeometrySource(textureCoordinates: uvs)],
-                              elements: [SCNGeometryElement(indices: idx, primitiveType: .triangles)])
-        let t = Tex.tile(.roof(p.covering))
-        let m = mat(.white)
-        m.diffuse.contents = Tex.image(.roof(p.covering))
-        m.diffuse.wrapS = .repeat; m.diffuse.wrapT = .repeat; m.diffuse.mipFilter = .linear
-        m.diffuse.contentsTransform = SCNMatrix4MakeScale(CGFloat(1 / t.w), CGFloat(1 / t.h), 1)
-        m.specular.contents = NSColor(white: 0.35, alpha: 1)
-        geo.materials = [m]
-        root.addChildNode(SCNNode(geometry: geo))
-
+        let z = { (v: V2) in base + model.tanA * (model.depth(v)?.d ?? 0) }
+        root.addChildNode(roofMesh(model, rings: rings, z: z, roofCoverMat(p)))
         // Ветровые и карнизные доски по краю кровли
-        var fascia: [(simd_float3, simd_float3, simd_float3)] = []
-        for r in rings {
-            for i in r.indices {
-                let a = r[i], b = r[(i + 1) % r.count]
-                let n = max(1, Int((b - a).len / 0.25))
-                for k in 0..<n {
-                    let p0 = a + (b - a) * (Double(k) / Double(n)), p1 = a + (b - a) * (Double(k + 1) / Double(n))
-                    let t0 = z(p0) + 0.03, t1 = z(p1) + 0.03
-                    fascia += quad(f3(p0, t0 - 0.2), f3(p1, t1 - 0.2), f3(p1, t1), f3(p0, t0))
-                }
-            }
-        }
-        root.addChildNode(mesh(fascia, mat(RGBColor.darken(p.covering.nsColor, 0.6))))
+        root.addChildNode(fascia(rings, z: z, mat(RGBColor.darken(p.covering.nsColor, 0.6))))
     }
 
     static func buildStrip(_ p: Project, _ s: StripResult, _ concrete: SCNMaterial, _ sand: SCNMaterial, _ steel: SCNMaterial,

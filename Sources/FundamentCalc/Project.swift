@@ -159,7 +159,7 @@ final class Project: ObservableObject {
     @Published var studStep = 0.625
     /// Модульная система: стойка 3000, шаг 625, размеры кратны листу 1250, только стандартные блоки
     @Published var modular = true
-    @Published var sheathing: Sheathing = .osb
+    @Published var sheathing: Sheathing = .osbBraces
     @Published var sillType: SillType = .timber
     @Published var mt = 23.0
     @Published var snowRegion: SnowRegion = .r3
