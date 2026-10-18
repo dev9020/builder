@@ -28,6 +28,14 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/BuildPlan.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/BuildView.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Calculator.swift"
         },
         {
@@ -44,6 +52,14 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Drawings.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Framing.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Geometry.swift"
         },
         {
@@ -52,7 +68,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Lumber.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Materials.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Norms.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/PDFExport.swift"
         },
         {
           "kind" : "file",
@@ -152,13 +180,20 @@
       "moduleOutputPath" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/Modules/FundamentCalc.swiftmodule",
       "objects" : [
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/App.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/BuildPlan.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/BuildView.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Calculator.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/CatalogView.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Drainage.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/DrainageView.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Drawings.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Framing.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Geometry.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Loads.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Lumber.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Materials.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Norms.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/PDFExport.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Piles.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/PlanEditorView.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Presets.swift.o",
@@ -225,6 +260,14 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/BuildPlan.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/BuildView.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Calculator.swift.o"
         },
         {
@@ -241,6 +284,14 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Drawings.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Framing.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Geometry.swift.o"
         },
         {
@@ -249,7 +300,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Lumber.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Materials.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Norms.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/PDFExport.swift.o"
         },
         {
           "kind" : "file",
@@ -343,13 +406,20 @@
       "prepareForIndexing" : false,
       "sources" : [
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/App.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/BuildPlan.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/BuildView.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Calculator.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/CatalogView.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Drainage.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/DrainageView.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/Drawings.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/Framing.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Geometry.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Loads.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/Lumber.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Materials.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/Norms.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/PDFExport.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Piles.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/PlanEditorView.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Presets.swift",
@@ -389,13 +459,20 @@
       "-incremental",
       "-c",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/App.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/BuildPlan.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/BuildView.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Calculator.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/CatalogView.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Drainage.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/DrainageView.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/Drawings.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/Framing.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Geometry.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Loads.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/Lumber.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Materials.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/Norms.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/PDFExport.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Piles.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/PlanEditorView.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Presets.swift",
@@ -496,6 +573,14 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/BuildPlan.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/BuildView.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Calculator.swift"
         },
         {
@@ -512,6 +597,14 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Drawings.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Framing.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Geometry.swift"
         },
         {
@@ -520,7 +613,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Lumber.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Materials.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Norms.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/PDFExport.swift"
         },
         {
           "kind" : "file",
@@ -622,6 +727,14 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/BuildPlan.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/BuildView.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Calculator.swift.o"
         },
         {
@@ -638,6 +751,14 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Drawings.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Framing.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Geometry.swift.o"
         },
         {
@@ -646,7 +767,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Lumber.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Materials.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Norms.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/PDFExport.swift.o"
         },
         {
           "kind" : "file",

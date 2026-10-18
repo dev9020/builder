@@ -8,6 +8,18 @@
     "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/App~partial.swiftmodule",
     "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/App.swiftdeps"
   },
+  "/Users/user/workspace/project/builder/Sources/FundamentCalc/BuildPlan.swift": {
+    "dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/BuildPlan.d",
+    "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/BuildPlan.swift.o",
+    "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/BuildPlan~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/BuildPlan.swiftdeps"
+  },
+  "/Users/user/workspace/project/builder/Sources/FundamentCalc/BuildView.swift": {
+    "dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/BuildView.d",
+    "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/BuildView.swift.o",
+    "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/BuildView~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/BuildView.swiftdeps"
+  },
   "/Users/user/workspace/project/builder/Sources/FundamentCalc/Calculator.swift": {
     "dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Calculator.d",
     "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Calculator.swift.o",
@@ -32,6 +44,18 @@
     "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/DrainageView~partial.swiftmodule",
     "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/DrainageView.swiftdeps"
   },
+  "/Users/user/workspace/project/builder/Sources/FundamentCalc/Drawings.swift": {
+    "dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Drawings.d",
+    "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Drawings.swift.o",
+    "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Drawings~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Drawings.swiftdeps"
+  },
+  "/Users/user/workspace/project/builder/Sources/FundamentCalc/Framing.swift": {
+    "dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Framing.d",
+    "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Framing.swift.o",
+    "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Framing~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Framing.swiftdeps"
+  },
   "/Users/user/workspace/project/builder/Sources/FundamentCalc/Geometry.swift": {
     "dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Geometry.d",
     "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Geometry.swift.o",
@@ -44,11 +68,29 @@
     "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Loads~partial.swiftmodule",
     "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Loads.swiftdeps"
   },
+  "/Users/user/workspace/project/builder/Sources/FundamentCalc/Lumber.swift": {
+    "dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Lumber.d",
+    "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Lumber.swift.o",
+    "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Lumber~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Lumber.swiftdeps"
+  },
   "/Users/user/workspace/project/builder/Sources/FundamentCalc/Materials.swift": {
     "dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Materials.d",
     "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Materials.swift.o",
     "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Materials~partial.swiftmodule",
     "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Materials.swiftdeps"
+  },
+  "/Users/user/workspace/project/builder/Sources/FundamentCalc/Norms.swift": {
+    "dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Norms.d",
+    "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Norms.swift.o",
+    "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Norms~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Norms.swiftdeps"
+  },
+  "/Users/user/workspace/project/builder/Sources/FundamentCalc/PDFExport.swift": {
+    "dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/PDFExport.d",
+    "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/PDFExport.swift.o",
+    "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/PDFExport~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/PDFExport.swiftdeps"
   },
   "/Users/user/workspace/project/builder/Sources/FundamentCalc/Piles.swift": {
     "dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Piles.d",

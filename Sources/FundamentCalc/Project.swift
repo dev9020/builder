@@ -136,8 +136,21 @@ final class Project: ObservableObject {
 
     // Климат
     @Published var cityIndex = 0 {
-        didSet { if cityIndex >= 0 && cityIndex < cities.count { mt = cities[cityIndex].mt; snowRegion = cities[cityIndex].snow } }
+        didSet {
+            if cityIndex >= 0 && cityIndex < cities.count {
+                mt = cities[cityIndex].mt; snowRegion = cities[cityIndex].snow
+                tHeat = cities[cityIndex].tHeat; zHeat = cities[cityIndex].zHeat
+            }
+        }
     }
+    @Published var tHeat = -2.2
+    @Published var zHeat = 205.0
+    var climate: HeatClimate { HeatClimate(tHeat: tHeat, zHeat: zHeat) }
+
+    // Каркас (проект дома)
+    @Published var studStep = 0.6
+    @Published var sheathing: Sheathing = .osb
+    @Published var sillType: SillType = .timber
     @Published var mt = 23.0
     @Published var snowRegion: SnowRegion = .r3
     @Published var heated = true

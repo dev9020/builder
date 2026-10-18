@@ -22,17 +22,22 @@ enum Calculator {
 final class AppModel: ObservableObject {
     let project: Project
     @Published var results: CalcResults
+    @Published var plan: BuildPlan
     private var bag: AnyCancellable?
 
     init() {
         let p = Project()
         project = p
-        results = Calculator.run(p)
+        let r = Calculator.run(p)
+        results = r
+        plan = BuildPlan.make(p, r)
         bag = p.objectWillChange
             .debounce(for: .milliseconds(120), scheduler: RunLoop.main)
             .sink { [weak self] _ in
                 guard let self else { return }
-                self.results = Calculator.run(self.project)
+                let r = Calculator.run(self.project)
+                self.results = r
+                self.plan = BuildPlan.make(self.project, r)
             }
     }
 }

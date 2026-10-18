@@ -37,6 +37,71 @@ struct FundamentApp: App {
             }
             exit(0)
         }
+        if CommandLine.arguments.contains("--build") {
+            let p = Project()
+            if let i = CommandLine.arguments.firstIndex(of: "--preset"), i + 1 < CommandLine.arguments.count,
+               let pr = HousePreset.all.first(where: { $0.id == CommandLine.arguments[i + 1] }) { pr.apply(p) }
+            let r = Calculator.run(p)
+            let b = BuildPlan.make(p, r)
+            let F = b.frame
+            print("элементов каркаса: \(F.members.count), стен: \(F.walls.count), анкеров: \(F.anchors.count)")
+            print("отметки: верх фунд. \(fmt(F.foundTop)), пол 1 эт. \(fmt(F.levelBase)), верх стен \(fmt(F.wallTop)), стены \(F.wallHeights.map { fmt($0) })")
+            for j in F.floors + (F.attic.map { [$0] } ?? []) {
+                print("  \(j.title): \(j.check.title) шаг \(j.check.step) пролёт \(fmt(j.maxSpan)) σ=\(fmt(j.check.sigma, 1)) f=\(fmt(j.check.f * 1000, 0))/\(fmt(j.check.fu * 1000, 0)) ok=\(j.check.ok) линий \(j.lines.count)")
+            }
+            if let rf = F.rafter { print("  стропила \(rf.title) шаг \(rf.step) проекция \(fmt(F.rafterRun)) σ=\(fmt(rf.sigma, 1)) f=\(fmt(rf.f * 1000, 0))/\(fmt(rf.fu * 1000, 0)) ok=\(rf.ok) подкос=\(F.rafterStrut)") }
+            print("  стойка N=\(fmt(F.stud.N, 1)) φ=\(fmt(F.stud.phi, 2)) σ=\(fmt(F.stud.sigma, 2)) ok=\(F.stud.ok)")
+            for h in F.headers { print("  перемычка \(h.wall)/\(h.storey) l=\(fmt(h.span)) q=\(fmt(h.q, 1)) \(h.check.title) σ=\(fmt(h.check.sigma, 1)) ok=\(h.check.ok)") }
+            print("ГСОП \(Int(b.gsop)): Rст \(fmt(b.rWall)) → \(Int(b.woolWall * 1000)); Rкр \(fmt(b.rRoof)) → \(Int(b.woolRoof * 1000)); Rпол \(fmt(b.rFloor)) → \(Int(b.woolFloor * 1000)); Rок \(fmt(b.rWindow))")
+            for k in MemberKind.allCases { let n = F.members.filter { $0.kind == k }.count; if n > 0 { print("  \(k.rawValue): \(n)") } }
+            for row in b.lumber { print("  \(row.sec.label): \(row.pieces) шт, \(fmt(row.totalLength, 0)) м, \(fmt(row.volume, 2)) м³ — \(row.use)") }
+            for s in b.stages { print("\(s.number). \(s.title): шагов \(s.steps.count), решений \(s.decisions.count), схем \(s.figures.count), позиций \(s.items.count), \(rub(s.items.reduce(0) { $0 + $1.cost }))") }
+            for g in b.groups { print("[\(g.title)] \(rub(g.items.reduce(0) { $0 + $1.cost }))"); for it in g.items { print("    \(it.name): \(fmt(it.qty, it.digits)) \(it.unit) \(rub(it.cost))") } }
+            print("ИТОГО \(rub(b.total))")
+            exit(0)
+        }
+        if let i = CommandLine.arguments.firstIndex(of: "--pdf"), i + 1 < CommandLine.arguments.count {
+            MainActor.assumeIsolated {
+                let p = Project()
+                if let j = CommandLine.arguments.firstIndex(of: "--preset"), j + 1 < CommandLine.arguments.count,
+                   let pr = HousePreset.all.first(where: { $0.id == CommandLine.arguments[j + 1] }) { pr.apply(p) }
+                if let j = CommandLine.arguments.firstIndex(of: "--foundation"), j + 1 < CommandLine.arguments.count,
+                   let k = FoundationKind(rawValue: CommandLine.arguments[j + 1]) { p.selectedFoundation = k }
+                let r = Calculator.run(p)
+                let b = BuildPlan.make(p, r)
+                let t0 = Date()
+                let data = PDFExport.make(p, r, b)
+                try? data.write(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
+                print("PDF: \(data.count / 1024) КБ за \(fmt(Date().timeIntervalSince(t0), 1)) с")
+            }
+            exit(0)
+        }
+        if let i = CommandLine.arguments.firstIndex(of: "--figs"), i + 1 < CommandLine.arguments.count {
+            MainActor.assumeIsolated {
+                let p = Project()
+                if let j = CommandLine.arguments.firstIndex(of: "--foundation"), j + 1 < CommandLine.arguments.count,
+                   let k = FoundationKind(rawValue: CommandLine.arguments[j + 1]) { p.selectedFoundation = k }
+                let r = Calculator.run(p)
+                let b = BuildPlan.make(p, r)
+                let ctx = Drawings.Ctx(p: p, r: r, b: b)
+                var n = 0
+                for s in b.stages {
+                    for f in s.figures {
+                        n += 1
+                        let w = 1030.0, h = w * f.aspect
+                        let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(w), pixelsHigh: Int(h), bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+                        let g = NSGraphicsContext(bitmapImageRep: rep)!
+                        let cg = g.cgContext
+                        cg.translateBy(x: 0, y: h); cg.scaleBy(x: 2, y: -2)
+                        Drawings.render(f.kind, ctx, cg, CGRect(x: 0, y: 0, width: w / 2, height: h / 2))
+                        let png = rep.representation(using: .png, properties: [:])!
+                        try? png.write(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]).appendingPathComponent(String(format: "fig%02d.png", n)))
+                    }
+                }
+                print("схем: \(n)")
+            }
+            exit(0)
+        }
         if CommandLine.arguments.contains("--dump") {
             let p = Project()
             for kind in FoundationKind.allCases {
@@ -68,7 +133,7 @@ struct FundamentApp: App {
 }
 
 enum MainTab: String, CaseIterable, Identifiable {
-    case view3D = "3D-модель", plan = "План", results = "Расчёт", works = "Работы"
+    case view3D = "3D-модель", plan = "План", results = "Расчёт", works = "Работы", build = "Проект дома"
     var id: String { rawValue }
 }
 
@@ -99,6 +164,7 @@ struct ContentView: View {
                 case .plan: PlanEditorView().environmentObject(editor)
                 case .results: ResultsView()
                 case .works: WorksView()
+                case .build: BuildView(show3D: { st in options.stage = st; tab = .view3D })
                 }
             }
             .frame(minWidth: 640, maxWidth: .infinity, maxHeight: .infinity)
@@ -181,6 +247,24 @@ struct ContentView: View {
             .padding(8)
 
             VStack {
+                HStack(spacing: 8) {
+                    Text("Этап:").bold()
+                    Button { if options.stage.rawValue > 0 { options.stage = Stage3D(rawValue: options.stage.rawValue - 1)! } } label: { Image(systemName: "chevron.left") }
+                        .disabled(options.stage == .site)
+                    Slider(value: Binding(get: { Double(options.stage.rawValue) }, set: { options.stage = Stage3D(rawValue: Int($0.rounded())) ?? .finish }),
+                           in: 0...Double(Stage3D.allCases.count - 1), step: 1)
+                        .frame(width: 220)
+                    Button { if options.stage != .finish { options.stage = Stage3D(rawValue: options.stage.rawValue + 1)! } } label: { Image(systemName: "chevron.right") }
+                        .disabled(options.stage == .finish)
+                    Text("\(options.stage.rawValue + 1). \(options.stage.title)").frame(width: 230, alignment: .leading)
+                }
+                .buttonStyle(.borderless)
+                .font(.callout)
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                .padding(.top, 8)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.trailing, 8)
                 Spacer()
                 HStack(spacing: 10) {
                     ForEach(project.usedMaterials) { m in

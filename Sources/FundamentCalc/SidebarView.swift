@@ -130,6 +130,18 @@ struct SidebarView: View {
             Picker("Облицовка фасада", selection: $p.facade) {
                 ForEach(FacadeFinish.allCases) { Text($0.title).tag($0) }
             }
+            Picker("Шаг стоек и балок", selection: $p.studStep) {
+                Text("600 мм (под утеплитель 600)").tag(0.6)
+                Text("400 мм (усиленный)").tag(0.4)
+            }
+            Picker("Жёсткость стен", selection: $p.sheathing) {
+                ForEach(Sheathing.allCases) { Text($0.title).tag($0) }
+            }
+            if p.selectedFoundation != .slab {
+                Picker("Обвязка по фундаменту", selection: $p.sillType) {
+                    ForEach(SillType.allCases) { Text($0.title).tag($0) }
+                }
+            }
             Text("Материал отдельных участков и перегородки задаются на вкладке «План».")
                 .font(.caption).foregroundStyle(.secondary)
         }
@@ -189,6 +201,10 @@ struct SidebarView: View {
                 ForEach(SnowRegion.allCases) { Text($0.title).tag($0) }
             }
             Toggle("Дом отапливаемый", isOn: $p.heated)
+            NumField(title: "t отоп. периода", value: $p.tHeat, unit: "°C", range: -20...8, step: 0.1, digits: 1)
+            NumField(title: "Длительность отоп. периода", value: $p.zHeat, unit: "сут", range: 60...365, step: 1, digits: 0)
+            Text("ГСОП = \(Int(p.climate.gsop)) °C·сут → утеплитель стен \(Int(model.plan.woolWall * 1000)) мм, кровли \(Int(model.plan.woolRoof * 1000)) мм (СП 50.13330.2024).")
+                .font(.caption).foregroundStyle(.secondary)
             Text("Нормативная глубина промерзания dfn = \(fmt(model.results.strip.dfn)) м, расчётная df = \(fmt(model.results.strip.df)) м. Снег на кровле S = \(fmt(model.results.loads.snowS)) кПа (μ = \(fmt(model.results.loads.snowMu))). Данные по городам ориентировочные — сверьте с СП 131 и картой СП 20.")
                 .font(.caption).foregroundStyle(.secondary)
         }

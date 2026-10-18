@@ -11,6 +11,7 @@ struct SceneOptions: Hashable {
     var foundation = true
     var drainage = true
     var site = true
+    var stage: Stage3D = .finish
 }
 
 enum RGBColor {
@@ -100,7 +101,9 @@ enum SceneBuilder {
 
     // MARK: - Сборка сцены
 
-    static func build(_ p: Project, _ r: CalcResults, _ o: SceneOptions) -> SCNNode {
+    static func build(_ p: Project, _ r: CalcResults, _ o0: SceneOptions) -> SCNNode {
+        var o = o0
+        if o.stage == .foundation { o.rebar = true }
         let root = SCNNode()
         let kind = p.selectedFoundation
         let rings = p.rings
@@ -128,7 +131,9 @@ enum SceneBuilder {
             root.addChildNode(n)
         }
 
-        if o.foundation {
+        let staged = o.stage < .finish
+        if o.stage == .site { buildLayout(p, r, root) }
+        if o.foundation && o.stage >= .foundation {
             let rebarGroup = SCNNode()
             switch kind {
             case .strip: buildStrip(p, r.strip, concrete, sand, steel, rebarGroup, root, o.rebar)
@@ -136,6 +141,10 @@ enum SceneBuilder {
             case .piles: buildPiles(p, r.piles, concrete, steel, steelGray, rebarGroup, root, o.rebar)
             }
             if o.rebar { root.addChildNode(rebarGroup.flattenedClone()) }
+        }
+        if staged {
+            if o.stage >= .floor { buildFrame(p, r, o.stage, root) }
+            return root
         }
 
         let H = Double(p.floors) * p.floorHeight
@@ -188,6 +197,67 @@ enum SceneBuilder {
             if o.site { buildSite(p, dr, root) }
         }
         return root
+    }
+
+    // MARK: - Каркас по этапам
+
+    static func buildFrame(_ p: Project, _ r: CalcResults, _ stage: Stage3D, _ root: SCNNode) {
+        let F = FrameGen.make(p, r)
+        var groups: [MemberKind: SCNNode] = [:]
+        var mats: [MemberKind: SCNMaterial] = [:]
+        for m in F.members {
+            guard m.stage <= stage, !(m.onlyOwnStage && m.stage != stage) else { continue }
+            let mat0: SCNMaterial
+            if let mm = mats[m.kind] { mat0 = mm } else {
+                let c = m.kind.rgb
+                let mm = mat(rgb(c.0, c.1, c.2))
+                mats[m.kind] = mm; mat0 = mm
+            }
+            let L = m.length
+            guard L > 0.01 else { continue }
+            let g = SCNBox(width: CGFloat(L), height: CGFloat(m.sec.wm), length: CGFloat(m.sec.tm), chamferRadius: 0)
+            g.materials = [mat0]
+            let n = SCNNode(geometry: g)
+            func sv(_ v: V3) -> simd_float3 { simd_float3(Float(v.x), Float(v.z), Float(-v.y)) }
+            let dir = simd_normalize(sv(m.b - m.a))
+            var up = sv(m.up)
+            up = simd_normalize(up - dir * simd_dot(up, dir))
+            let side = simd_cross(dir, up)
+            n.simdOrientation = simd_quatf(simd_float3x3(columns: (dir, up, side)))
+            n.simdPosition = (sv(m.a) + sv(m.b)) / 2
+            let grp = groups[m.kind] ?? SCNNode()
+            grp.addChildNode(n)
+            groups[m.kind] = grp
+        }
+        for (_, g) in groups { root.addChildNode(g.flattenedClone()) }
+        // настилы перекрытий (ОСП) — полупрозрачные
+        let osb = mat(rgb(0.80, 0.68, 0.45), 0.55)
+        let woodFloor = p.selectedFoundation != .slab && p.groundFloor == .wood
+        if woodFloor && stage >= .floor { root.addChildNode(extrude(p.rings, bottom: F.levelBase - 0.022, top: F.levelBase, osb)) }
+        if stage >= .upper {
+            for k in 1..<max(p.floors, 1) {
+                let z = F.levelBase + Double(k) * p.floorHeight
+                root.addChildNode(extrude(p.rings, bottom: z - 0.022, top: z, osb))
+            }
+        }
+        // анкеры
+        if stage == .floor {
+            let steel = mat(rgb(0.6, 0.6, 0.62), metal: true)
+            for a in F.anchors { root.addChildNode(rod(f3(a, F.foundTop - 0.1), f3(a, F.foundTop + (p.selectedFoundation == .slab ? 0.1 : F.sillSec.tm) + 0.03), radius: 0.008, steel)) }
+        }
+    }
+
+    /// Обноска и шнуры (этап разбивки)
+    static func buildLayout(_ p: Project, _ r: CalcResults, _ root: SCNNode) {
+        let sc = Works.plan(p, r).scheme
+        let wood = texMat(.wood, uLen: 1, vLen: 0.15)
+        for post in sc.posts { root.addChildNode(beam(post - V2(0.025, 0), post + V2(0.025, 0), width: 0.05, bottom: 0, top: 0.8, extend: 0, wood)) }
+        let ob = sc.obnoska
+        for i in ob.indices { root.addChildNode(beam(ob[i], ob[(i + 1) % ob.count], width: 0.025, bottom: 0.62, top: 0.77, extend: 0.03, wood)) }
+        let red = mat(rgb(0.9, 0.1, 0.1))
+        for (a, b) in sc.strings { root.addChildNode(rod(f3(a, 0.78), f3(b, 0.78), radius: 0.004, red)) }
+        let peg = mat(rgb(0.95, 0.6, 0.1))
+        for pl in sc.piles { root.addChildNode(rod(f3(pl, 0), f3(pl, 0.3), radius: 0.015, peg)) }
     }
 
     // MARK: - Материалы с текстурой

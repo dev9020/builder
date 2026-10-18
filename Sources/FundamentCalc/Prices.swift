@@ -65,6 +65,61 @@ enum Price {
     static let drainWell = 5500.0           // смотровой колодец Ø315 с днищем и крышкой
     static let collectorWell = 25000.0      // накопительный колодец Ø1000 / ж/б кольца
     static let rainInlet = 1500.0           // точечный дождеприёмник
+
+    // Каркас: пиломатериалы, ₽/м³ (хвоя 2 сорт камерной сушки; брус обвязки — антисептированный)
+    static func lumberM3(_ s: Lumber) -> Double { s.isBeam ? 26000 : s.t <= 25 ? 22000 : 25000 }
+    static let osb9 = 780.0                 // ОСП-3 9 мм 2500×1250, ₽/лист
+    static let osb12 = 980.0                // ОСП-3 12 мм
+    static let osb22 = 1750.0               // ОСП-3 22 мм шпунт 2500×1250 (2440×590 — дороже)
+    static let gkl = 480.0                  // ГКЛ 12.5 мм 2500×1200, ₽/лист
+    static let woolM3 = 4200.0              // минвата 30–40 кг/м³, ₽/м³
+    static let membraneM2 = 55.0            // супердиффузионная мембрана, ₽/м²
+    static let vaporM2 = 22.0               // пароизоляционная плёнка, ₽/м²
+    static let tapeButylM = 30.0            // бутилкаучуковая / акриловая лента, ₽/м
+    static let sealTapeM = 45.0             // межвенцовый/уплотнительный ППЭ 5–8 мм под обвязку, ₽/м
+    static let studM12 = 160.0              // шпилька резьбовая М12×1000 оц., ₽/шт
+    static let nutWasherM12 = 18.0          // гайка М12 + шайба увелич. DIN 9021, ₽/компл
+    static let chemAnchor = 950.0           // химический анкер 300 мл, ₽/картридж
+    static let antisepticL = 120.0          // огнебиозащита, ₽/л
+    static let nailsKgG = 230.0             // гвозди строительные 4×100 / 3.5×90, ₽/кг
+    static let ringNailsKg = 380.0          // ершёные оцинк. 2.5×50 / 3.1×90, ₽/кг
+    static let screwsKg = 650.0             // саморезы по дереву, ₽/кг
+    static let anchorNailsKg = 520.0        // анкерные (ершёные) гвозди 4×40 оцинк., ₽/кг
+    static let angle90 = 45.0               // уголок усиленный 90×90×65, ₽/шт
+    static let joistHanger = 85.0           // опора балки 50×200, ₽/шт
+    static let windStrap = 40.0             // ветровая скоба / перфолента на узел, ₽/шт
+    static let boltM12 = 70.0               // болт/шпилька М12 с 2 гайками и шайбами, ₽/компл
+    static let foamCan = 520.0              // пена монтажная 750 мл, ₽/баллон
+    static let psulM = 70.0                 // ПСУЛ, ₽/м
+    static let windowM2 = 9500.0            // окно ПВХ с монтажными материалами, ₽/м²
+    static let doorInt = 9000.0             // межкомнатный блок с фурнитурой, ₽/шт
+    static let doorExt = 32000.0            // стальная утеплённая входная, ₽/шт
+    static let roofScrews = 1.6             // кровельный саморез 4.8×35, ₽/шт
+    static func coveringM2(_ c: RoofCovering) -> Double {
+        switch c {
+        case .metalTile: return 680
+        case .profiledSheet: return 560
+        case .seam: return 1150
+        case .slate: return 380
+        case .ondulin: return 430
+        case .softShingle: return 750
+        case .compositeTile: return 1150
+        case .ceramicTile: return 2600
+        case .cementTile: return 1300
+        }
+    }
+    static func facadeM2(_ f: FacadeFinish) -> Double {
+        switch f {
+        case .siding: return 380
+        case .imitationTimber: return 950
+        case .fiberCement: return 1600
+        case .plaster: return 1700
+        case .facingBrick: return 1900
+        }
+    }
+    static let underlayM2 = 260.0           // подкладочный ковёр под мягкую черепицу, ₽/м²
+    static let snowGuardM = 900.0           // трубчатый снегозадержатель, ₽/м.п.
+    static let gutterM = 900.0              // водосточная система (желоб + доля трубы), ₽/м.п. карниза
 }
 
 extension WorkItem {

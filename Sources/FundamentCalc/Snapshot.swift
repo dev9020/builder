@@ -7,6 +7,8 @@ enum Snapshot {
     @MainActor
     static func run(_ dir: String) {
         let p = Project()
+        if let j = CommandLine.arguments.firstIndex(of: "--preset"), j + 1 < CommandLine.arguments.count,
+           let pr = HousePreset.all.first(where: { $0.id == CommandLine.arguments[j + 1] }) { pr.apply(p) }
         func save(_ img: NSImage?, _ name: String) {
             guard let img, let tiff = img.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
                   let png = rep.representation(using: .png, properties: [:]) else { print("fail \(name)"); return }
@@ -45,6 +47,23 @@ enum Snapshot {
             view(WeightsView(w: Weights.make(d, Calculator.run(d)), kind: d.selectedFoundation).padding(), "weights.png", CGSize(width: 980, height: 330))
             let rr = Calculator.run(d)
             view(DrainageBlock(d: Drainage.make(d, rr), kind: .strip, depth: rr.strip.depth, plinth: d.plinth).padding(), "drain.png", CGSize(width: 1000, height: 640))
+            return
+        }
+        if CommandLine.arguments.contains("--ui") {
+            for i in [6, 9, -1] { view(BuildView(plainStage: i), "ui_build\(i).png", CGSize(width: 1000, height: 3000)) }
+            return
+        }
+        if CommandLine.arguments.contains("--stages") {
+            for st in Stage3D.allCases {
+                var o = SceneOptions(); o.stage = st
+                scene3D("stage_\(st.rawValue).png", o, high: 0.6, k: 0.75)
+            }
+            if CommandLine.arguments.contains("--preset") { return }
+            p.roofType = .hip; p.shape = .lShape
+            var o = SceneOptions(); o.stage = .roof
+            scene3D("stage_hip_roof.png", o, high: 0.8, k: 0.8)
+            o.stage = .battens
+            scene3D("stage_hip_battens.png", o, high: 0.8, k: 0.8)
             return
         }
         if CommandLine.arguments.contains("--presets-only") {
