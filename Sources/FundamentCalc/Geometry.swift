@@ -15,6 +15,16 @@ func roundDown(_ x: Double, _ step: Double) -> Double { (x / step + 1e-9).rounde
 func fmt(_ x: Double, _ d: Int = 2) -> String { String(format: "%.\(d)f", x) }
 
 enum Geo {
+    /// Пересечение отрезков: доля t вдоль первого (0…1), если отрезки не параллельны и пересекаются
+    static func segmentIntersection(_ a: V2, _ b: V2, _ c: V2, _ d: V2) -> Double? {
+        let r = b - a, s = d - c
+        let den = r.x * s.y - r.y * s.x
+        guard abs(den) > 1e-9 else { return nil }
+        let q = c - a
+        let t = (q.x * s.y - q.y * s.x) / den, u = (q.x * r.y - q.y * r.x) / den
+        return t >= -1e-6 && t <= 1 + 1e-6 && u >= -1e-6 && u <= 1 + 1e-6 ? t : nil
+    }
+
     static func distToSegment(_ p: V2, _ a: V2, _ b: V2) -> Double {
         let ab = b - a
         let l2 = dot2(ab, ab)

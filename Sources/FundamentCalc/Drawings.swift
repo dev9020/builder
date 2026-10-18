@@ -585,9 +585,17 @@ enum Drawings {
         for r in c.p.rings { s.poly(r, fill: NSColor(white: 0.97, alpha: 1), stroke: .black, w: 1) }
         for (a, b) in j.supports { s.line(a, b, 5, NSColor(white: 0.55, alpha: 1)) }
         for (a, b) in j.lines { s.line(a, b, max(1, CGFloat(j.check.sec.tm * Double(j.check.count)) * s.sc), NSColor(srgbRed: 0.75, green: 0.55, blue: 0.3, alpha: 1)) }
-        for (a, b) in j.beams {
-            s.line(a, b, 5, red, dash: [8, 4])
-            s.label("прогон", (a + b) / 2, size: 7, ax: 0.5, ay: 1.2, color: red, bg: true)
+        for g in j.girders {
+            s.line(g.a, g.b, 5, red, dash: [8, 4])
+            s.label("прогон \(g.title), \(fmt(g.length, 1)) м", (g.a + g.b) / 2, size: 7, ax: 0.5, ay: 1.2, color: red, bg: true)
+            let d = (g.b - g.a).unit, n = V2(-d.y, d.x)
+            // стыки досок пакета — только над опорами
+            for (_, u1) in g.pieces.dropLast() { s.line(g.point(u1) - n * 0.25, g.point(u1) + n * 0.25, 1.5, red) }
+            for v in g.posts { s.poly([v - V2(0.1, 0.1), v + V2(0.1, -0.1), v + V2(0.1, 0.1), v + V2(-0.1, 0.1)], fill: red, stroke: nil) }
+            for v in g.hangers { s.poly([v + V2(0, 0.12), v + V2(0.1, -0.06), v + V2(-0.1, -0.06)], fill: NSColor(srgbRed: 0.75, green: 0.5, blue: 0.28, alpha: 1), stroke: nil) }
+        }
+        if !j.girders.isEmpty {
+            s.label("■ — стойка под прогон, ▲ — подвеска к коньку, | — стык досок пакета (только над опорой)", V2(lo.x - 0.7, lo.y - 0.6), size: 7, color: red)
         }
         s.label("\(j.title): \(j.check.title) шаг \(mm(j.check.step)), макс. пролёт \(fmt(j.maxSpan)) м, \(j.lines.count) балок. Серым — опоры (стены/обвязка).", V2(lo.x - 0.7, hi.y + 0.7), size: 7.5)
         if let l = j.lines.first { s.dim(l.0, l.1, off: -0.4, mm((l.1 - l.0).len)) }

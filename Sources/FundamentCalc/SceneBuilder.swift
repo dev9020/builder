@@ -243,7 +243,7 @@ enum SceneBuilder {
         var groups: [MemberKind: SCNNode] = [:]
         var mats: [MemberKind: SCNMaterial] = [:]
         // на внутренних работах кровля полупрозрачная — видно, что делается в доме
-        let roofKinds: Set<MemberKind> = [.rafter, .hip, .ridge, .collar, .tie, .windBrace, .counterBatten, .batten, .ceilingJoist, .girder, .gableStud]
+        let roofKinds: Set<MemberKind> = [.rafter, .hip, .ridge, .collar, .tie, .windBrace, .counterBatten, .batten, .ceilingJoist, .girder, .gableStud, .hanger, .tail, .strut]
         for m0 in F.members {
             guard visible(m0) else { continue }
             if m0.wall >= 0 && m0.wall != lying && m0.kind != .tempBrace { shown.insert(m0.wall) }

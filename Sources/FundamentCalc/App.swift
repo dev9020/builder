@@ -107,6 +107,11 @@ struct FundamentApp: App {
                     y += h
                 }
                 print("скачков: \(jumps)")
+                let long = F.members.filter { $0.length > 6.01 && $0.kind != .batten && $0.kind != .counterBatten }
+                print("элементов длиннее 6 м: \(long.count) " + Dictionary(grouping: long, by: \.kind).map { "\($0.key.rawValue) \($0.value.count) (до \(fmt($0.value.map(\.length).max() ?? 0)) м)" }.joined(separator: ", "))
+                for m in F.members.filter({ [.rafter, .hip, .ridge].contains($0.kind) }).prefix(400) where m.kind != .rafter || abs(m.a.y - 0) < 0.6 || abs(m.a.x - 14.8) < 0.6 {
+                    print("  \(m.kind) seq\(m.seq) a=(\(fmt(m.a.x)),\(fmt(m.a.y)),\(fmt(m.a.z))) b=(\(fmt(m.b.x)),\(fmt(m.b.y)),\(fmt(m.b.z))) up=(\(fmt(m.up.x)),\(fmt(m.up.y)),\(fmt(m.up.z))) \(m.sec.label)")
+                }
                 // участки ската без стропил: точка дальше 0.45 м от ближайшего стропила/диагональной ноги
                 var holes = 0
                 y = lo.y + 0.1
@@ -136,6 +141,14 @@ struct FundamentApp: App {
             }
             print("отметки: верх фунд. \(fmt(F.foundTop)), пол 1 эт. \(fmt(F.levelBase)), верх стен \(fmt(F.wallTop)), стены \(F.wallHeights.map { fmt($0) })")
             for j in F.floors + (F.attic.map { [$0] } ?? []) {
+                if CommandLine.arguments.contains("--joists") {
+                    print("    вдоль X: \(j.alongX); прогоны: " + j.beams.map { "(\(fmt($0.0.x)),\(fmt($0.0.y)))→(\(fmt($0.1.x)),\(fmt($0.1.y)))" }.joined(separator: " "))
+                    for g in j.girders {
+                        print("    прогон \(fmt(g.length)) м \(g.title) ok=\(g.check.ok) σ=\(fmt(g.check.sigma, 1)) макс.пролёт \(fmt(g.maxGap)) куски \(g.pieces.map { fmt($0.1 - $0.0) }) опоры: " + g.supports.map { "\(fmt($0.u))\($0.kind.rawValue.prefix(4))" }.joined(separator: " "))
+                    }
+                    print("    опоры: " + j.supports.map { "(\(fmt($0.0.x)),\(fmt($0.0.y)))→(\(fmt($0.1.x)),\(fmt($0.1.y)))" }.joined(separator: " "))
+                    print("    балки: " + j.lines.prefix(40).map { "\(fmt(($0.1 - $0.0).len))" }.joined(separator: " "))
+                }
                 print("  \(j.title): \(j.check.title) шаг \(j.check.step) пролёт \(fmt(j.maxSpan)) σ=\(fmt(j.check.sigma, 1)) f=\(fmt(j.check.f * 1000, 0))/\(fmt(j.check.fu * 1000, 0)) ok=\(j.check.ok) линий \(j.lines.count)")
             }
             if let rf = F.rafter { print("  стропила \(rf.title) шаг \(rf.step) проекция \(fmt(F.rafterRun)) σ=\(fmt(rf.sigma, 1)) f=\(fmt(rf.f * 1000, 0))/\(fmt(rf.fu * 1000, 0)) ok=\(rf.ok) подкос=\(F.rafterStrut)") }

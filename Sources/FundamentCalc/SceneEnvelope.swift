@@ -95,7 +95,7 @@ extension SceneBuilder {
                     let prof = model.profile(o0, o1)
                     if !prof.isEmpty {
                         let shift = dot2(o0 - A, dir)
-                        top = prof.map { (u: $0.u + shift, z: F.wallTop + $0.h - model.lift + F.studExt.wm / 2 * model.tanA + hR / cosA) }
+                        top = prof.map { (u: $0.u + shift, z: F.rafterBase + $0.h - model.lift + F.studExt.wm / 2 * model.tanA + hR / cosA) }
                         if top[0].u > 0 { top.insert((0, top[0].z), at: 0) }
                         if top.last!.u < L { top.append((L, top.last!.z)) }
                     }
@@ -256,7 +256,7 @@ extension SceneBuilder {
                 let rings = p.rings.enumerated().map { i, r in Geo.offset(r, by: i == 0 ? o : -o) }
                 let cosA = 1 / (1 + model.tanA * model.tanA).squareRoot()
                 let lift = (rf.sec.wm + F.counterSec.wm + F.battenSec.tm) / cosA + 0.01
-                let z = { (v: V2) in F.wallTop + ((model.depth(v)?.d ?? 0) - (o - D / 2)) * model.tanA + lift }
+                let z = { (v: V2) in F.rafterBase + ((model.depth(v)?.d ?? 0) - (o - D / 2)) * model.tanA + lift }
                 let op = interior ? 0.15 : 1
                 root.addChildNode(roofMesh(model, rings: rings, z: z, roofCoverMat(p, opacity: op)))
                 // лобовая доска закрывает торцы стропил и обрешётки
@@ -269,7 +269,7 @@ extension SceneBuilder {
             let model = RoofModel.of(p, overhang: o)
             let rings = p.rings.enumerated().map { i, r in Geo.offset(r, by: i == 0 ? o - 0.05 : -(o - 0.05)) }
             let cosA = 1 / (1 + model.tanA * model.tanA).squareRoot()
-            let z = { (v: V2) in F.wallTop + ((model.depth(v)?.d ?? 0) - (o - D / 2)) * model.tanA + rf.sec.wm / cosA + 0.003 }
+            let z = { (v: V2) in F.rafterBase + ((model.depth(v)?.d ?? 0) - (o - D / 2)) * model.tanA + rf.sec.wm / cosA + 0.003 }
             root.addChildNode(roofMesh(model, rings: rings, z: z, mat(rgb(0.93, 0.95, 0.97), sub >= 2 ? 1 : 0.9)))
         }
 
@@ -336,7 +336,7 @@ extension SceneBuilder {
         let model = RoofModel.of(p, overhang: o)
         let cosA = 1 / (1 + model.tanA * model.tanA).squareRoot()
         func underRafters(_ dz: Double) -> (V2) -> Double {
-            { v in F.wallTop + ((model.depth(v)?.d ?? 0) - (o - D / 2)) * model.tanA + dz }
+            { v in F.rafterBase + ((model.depth(v)?.d ?? 0) - (o - D / 2)) * model.tanA + dz }
         }
         func partitions(_ off: (WallFrame) -> Double, _ m: SCNMaterial) {
             let g = SCNNode()

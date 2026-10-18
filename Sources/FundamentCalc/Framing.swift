@@ -90,8 +90,12 @@ enum MemberKind: String, CaseIterable {
     case hip = "Диагональная стропильная нога"
     case ridge = "Коньковая доска"
     case girder = "Прогон (ригель) перекрытия"
+    case post = "Стойка под прогон"
+    case hanger = "Подвеска (бабка) прогона к коньку"
     case collar = "Ригель (схватка)"
     case windBrace = "Ветровая связь стропил"
+    case tail = "Кобылка (наращивание свеса)"
+    case strut = "Стойка-подпорка под стык ноги"
     case tie = "Затяжка"
     case gableStud = "Стойка фронтона"
     case counterBatten = "Контробрешётка"
@@ -110,7 +114,11 @@ enum MemberKind: String, CaseIterable {
         case .tempBrace: return (0.95, 0.25, 0.20)
         case .rafter, .hip, .collar, .tie: return (0.83, 0.66, 0.44)
         case .windBrace: return (0.80, 0.45, 0.30)
+        case .tail: return (0.78, 0.60, 0.40)
+        case .strut: return (0.55, 0.36, 0.20)
         case .girder: return (0.60, 0.40, 0.22)
+        case .post: return (0.55, 0.36, 0.20)
+        case .hanger: return (0.75, 0.50, 0.28)
         case .ridge: return (0.70, 0.50, 0.30)
         case .counterBatten: return (0.62, 0.50, 0.36)
         case .batten: return (0.90, 0.78, 0.60)
@@ -160,6 +168,8 @@ struct JoistLayout {
     var lines: [(V2, V2)] = []
     var supports: [(V2, V2)] = []
     var beams: [(V2, V2)] = []          // добавленные прогоны (ригели) при большом пролёте
+    var girders: [Girder] = []          // те же прогоны с опорами, сечением и раскроем
+    var lineSupports: [[Double]] = []   // опоры каждой балки — расстояния от её начала (стыки — только над ними)
     var maxSpan = 0.0
     var zBottom = 0.0
     var qd = 0.0, qn = 0.0
@@ -198,6 +208,7 @@ struct Framing {
     var battenSec = Lumber(25, 100)
     var counterSec = Lumber(50, 50)
     var levelBase = 0.0, wallTop = 0.0, foundTop = 0.0
+    var rafterBase = 0.0                // низ стропила по наружной грани стены (ниже верха обвязки на глубину запила)
     var wallHeights: [Double] = []
     var levels: [Double] = []           // отметки низа стен каждого этажа
     /// Порядок подъёма стен 1-го этажа (индексы в walls) с пояснением
@@ -297,6 +308,10 @@ enum FrameGen {
             return again
         }
         jl.lines = L.lines.map { ($0.0, $0.1) }
+        jl.lineSupports = L.lines.map { l in
+            let s0 = useX ? l.0.x : l.0.y
+            return l.2.map { $0 - s0 }
+        }
         jl.supports = allLines.map { ($0.a, $0.b) }
         for c in L.beams {
             for (s0, s1) in Geo.scan(rings, at: c, horizontal: !useX) {
@@ -364,15 +379,12 @@ enum FrameGen {
             : nil
         var atticJ: JoistLayout? = nil
         if p.roofType != .flat {
+            // по крыльям: балки поперёк крыла рядом со стропилами — они же затяжки; большой пролёт — подвесной прогон
             let title = p.roofInsulated ? "Перекрытие мансарды" : "Чердачное перекрытие"
-            let free = joists(rings: rings, supports: lines, zBottom: 0, step: jStep, qd: aq.d, qn: aq.n, preferX: nil, title: title, sizes: jSizes, grid: jGrid)
-            if let pref = preferAttic {
-                let tied = joists(rings: rings, supports: lines, zBottom: 0, step: jStep, qd: aq.d, qn: aq.n, preferX: pref, title: title + " (балки — затяжки стропил)", sizes: jSizes, grid: jGrid)
-                // балки вдоль стропил работают затяжками; если пролёт заметно больше — балки по короткому пролёту + отдельные затяжки
-                atticJ = tied.maxSpan <= free.maxSpan + 0.5 || tied.maxSpan <= 5.0 ? tied : free
-                F.separateTies = atticJ!.alongX != pref
-            } else { atticJ = free }
+            atticJ = atticJoists(p, rings: rings, supports: lines, zBottom: 0, step: jStep, qd: aq.d, qn: aq.n, title: title + " (балки — затяжки стропил)", sizes: jSizes, D: D)
+            F.separateTies = false
         }
+        _ = preferAttic
         if p.roofType == .flat {
             let flatQ = (d: p.flatSlab.weight * 1.2 + r.loads.snowS * 1.4, n: p.flatSlab.weight + r.loads.snowS)
             atticJ = joists(rings: rings, supports: lines, zBottom: 0, step: jStep, qd: flatQ.d, qn: flatQ.n, preferX: nil,
@@ -431,7 +443,9 @@ enum FrameGen {
         // --- Перекрытие 1-го этажа ---
         if var g = groundJ {
             g.zBottom = F.foundTop + sillH
+            floorGirders(&g, p, supports: lines)
             addJoists(&F, g, rings: rings, depth: D, kind: .joist, stage: .floor, withRim: true)
+            addGirders(&F, g, stage: .floor, postBase: 0)
             F.floors.append(g)
         }
 
@@ -481,15 +495,19 @@ enum FrameGen {
             // перекрытие над этажом
             if k < floors - 1, var j = interJ {
                 j.zBottom = z0 + hw
+                floorGirders(&j, p, supports: lines)
                 let first = F.members.count
                 addJoists(&F, j, rings: rings, depth: D, kind: .joist, stage: .upper, withRim: true)
+                addGirders(&F, j, stage: .upper, postBase: z0 + 0.05)
                 for i in first..<F.members.count { F.members[i].storey = k + 1 }
                 if k == 0 { F.floors.append(j) }
             }
         }
         if var a = atticJ {
             a.zBottom = F.wallTop
-            addJoists(&F, a, rings: rings, depth: D, kind: .ceilingJoist, stage: .roof, withRim: p.roofType == .flat)
+            if p.roofType == .flat { floorGirders(&a, p, supports: lines) }
+            addJoists(&F, a, rings: rings, depth: D, kind: .ceilingJoist, stage: .roof, withRim: p.roofType == .flat, trim: p.roofType == .flat ? 0.05 : 0.08)
+            addGirders(&F, a, stage: .roof, postBase: F.levels[floors - 1] + 0.05)
             F.attic = a
         }
 
@@ -607,18 +625,21 @@ enum FrameGen {
         Member(kind: kind, sec: sec, a: v3(a, z0 + sec.wm / 2), b: v3(b, z0 + sec.wm / 2), up: V3(0, 0, 1), stage: stage)
     }
 
-    static func addJoists(_ F: inout Framing, _ j: JoistLayout, rings: [[V2]], depth: Double, kind: MemberKind, stage: Stage3D, withRim: Bool) {
+    static func addJoists(_ F: inout Framing, _ j: JoistLayout, rings: [[V2]], depth: Double, kind: MemberKind, stage: Stage3D, withRim: Bool, trim: Double = 0.05) {
         let sec = j.check.sec
         let n = j.check.count
-        for (a, b) in j.beams {
-            F.members.append(onEdge(a, b, z0: j.zBottom, sec: Lumber(150, sec.w), kind: .girder, stage: stage))
-        }
-        for (a, b) in j.lines {
+        for (li, (a, b)) in j.lines.enumerated() {
             let d = (b - a).unit
-            let a1 = a - d * (depth / 2 - 0.05), b1 = b + d * (depth / 2 - 0.05)
-            for c in 0..<n {
-                let off = V2(-d.y, d.x) * (Double(c) - Double(n - 1) / 2) * sec.tm
-                F.members.append(onEdge(a1 + off, b1 + off, z0: j.zBottom, sec: sec, kind: kind, stage: stage))
+            let ext = depth / 2 - trim
+            let a1 = a - d * ext, b1 = b + d * ext
+            let L = (b1 - a1).len
+            // балка длиннее хлыста — куски со стыком над опорой (стена, прогон), стык — накладками на болтах
+            let sup = (li < j.lineSupports.count ? j.lineSupports[li] : []).map { $0 + ext }
+            for (u0, u1) in pieces(sup, length: L) {
+                for c in 0..<n {
+                    let off = V2(-d.y, d.x) * (Double(c) - Double(n - 1) / 2) * sec.tm
+                    F.members.append(onEdge(a1 + d * u0 + off, a1 + d * u1 + off, z0: j.zBottom, sec: sec, kind: kind, stage: stage))
+                }
             }
         }
         // распорки между балками — при пролёте > 2.5 м, не реже чем через 2 м
@@ -932,7 +953,11 @@ enum FrameGen {
         let bt = batten(p.covering, angle: p.roofAngleEff)
         F.battenSec = bt.0; F.battenStep = bt.1
 
-        func zb(_ v: V2, _ d: Double) -> Double { F.wallTop + (d - faceDepth) * tanA }
+        // опорный узел: запил («зуб») глубиной ≤ ⅓ высоты стропила — горизонтальная площадка ложится на обвязку,
+        // вертикальная грань упирается в наружную грань; без запила стропило висело бы на ребре обвязки
+        let seat = min(hR / 3, D * tanA * 0.95)
+        F.rafterBase = F.wallTop - seat
+        func zb(_ v: V2, _ d: Double) -> Double { F.rafterBase + (d - faceDepth) * tanA }
         func zc(_ v: V2, _ d: Double) -> Double { zb(v, d) + hR / 2 / cosA }
         func face(_ v: V2) -> Int? { Geo.contains(v, rings) ? model.depth(v)?.edge : nil }
         func slopeUp(_ n: V2) -> V3 { simd_normalize(V3(n.x * cosA, n.y * cosA, sin(alpha))) }
@@ -1019,16 +1044,32 @@ enum FrameGen {
             }
             // порядок монтажа: крайние пары (по ним натягивают шнур) → конёк → рядовые → нарожники у рёбер вальмы
             let jackSet = Set(ends.indices.filter { ends[$0].jack })
-            let cands = (onRidge.isEmpty ? Set(ends.indices) : onRidge).subtracting(jackSet).sorted()
+            var cands = (onRidge.isEmpty ? Set(ends.indices) : onRidge).subtracting(jackSet).sorted()
+            // торец вальмы (конька над скатом нет): сначала центральное стропило до конца конька,
+            // боковые — нарожники, их ставят только после диагональных ног, на которые они опираются
+            var kings = Set<Int>()
+            if onRidge.isEmpty && p.roofType != .shed, let zmax = ends.filter({ !$0.jack }).map(\.end.z).max() {
+                kings = Set(ends.indices.filter { !ends[$0].jack && abs(ends[$0].end.z - zmax) < 0.03 })
+                cands = []
+            }
             for (i, idx) in rIdx.enumerated() {
-                let sq = cands.contains(i) ? (i == cands.first || i == cands.last ? RoofSeq.endPairs : RoofSeq.common) : RoofSeq.jacks
-                for j in idx { F.members[j].seq = sq }
+                let sq = kings.contains(i) ? RoofSeq.endPairs
+                    : cands.contains(i) ? (i == cands.first || i == cands.last ? RoofSeq.endPairs : RoofSeq.common) : RoofSeq.jacks
+                for j in idx {
+                    F.members[j].seq = sq
+                    // у конька — торец к коньковой доске, а не в её середину
+                    if onRidge.contains(i) {
+                        let back = V3(-e.n.x, -e.n.y, -tanA) * 0.025
+                        F.members[j].b += back
+                    }
+                }
             }
             // ветровые связи — доска 25×150 по низу стропил от карниза к коньку под ≈ 45°, от обоих торцов ската
             if p.roofType == .gable || p.roofType == .shed, cands.count >= 4, let i0 = cands.first, let i1 = cands.last {
                 let run = ends[i0].run
                 let span = ends[i1].u - ends[i0].u
-                let L = min(run - 0.6, span / 2 - 0.1)
+                // длина доски ≤ 6 м: проекция L по скату и вдоль карниза → √(L²/cos²α + L²) ≤ 5.9
+                let L = min(run - 0.6, span / 2 - 0.1, 5.9 / (1 / (cosA * cosA) + 1).squareRoot())
                 if L > 0.8 {
                     for (u0, sg) in [(ends[i0].u, 1.0), (ends[i1].u, -1.0)] {
                         let A = e.a + d * u0 + e.n * 0.3, B = e.a + d * (u0 + sg * L) + e.n * (0.3 + L)
@@ -1099,6 +1140,21 @@ enum FrameGen {
             }
         }
 
+        // подвески («бабки») прогона чердачного перекрытия к коньковым парам: 2 доски 25×150 по бокам пары
+        if let at = F.attic {
+            let gTop = at.zBottom + at.check.sec.wm
+            for g in at.girders {
+                for v in g.hangers {
+                    guard let dd = model.depth(v) else { continue }
+                    let top = zb(v, dd.d) + hR / cosA - 0.03
+                    guard top > gTop + 0.3 else { continue }
+                    var m = Member(kind: .hanger, sec: Lumber(50, 150), a: v3(v, gTop), b: v3(v, top), up: V3((g.b - g.a).unit.x, (g.b - g.a).unit.y, 0), stage: .roof)
+                    m.seq = RoofSeq.ties
+                    F.members.append(m)
+                }
+            }
+        }
+
         // диагональные (накосные и ендовые) ноги — по биссектрисам углов, где сходятся два карниза
         var start = 0
         for ring in rings {
@@ -1131,6 +1187,54 @@ enum FrameGen {
             }
             start += n
         }
+        limitRafterLength(&F, p, hR: hR, cosA: cosA, faceDepth: faceDepth)
+    }
+
+    /// Ноги длиннее доски 6 м: свес — отдельной кобылкой внахлёст 1 м, а если и без свеса длиннее —
+    /// стык над стойкой-подпоркой, стоящей на лежне поперёк балок перекрытия (или на прогоне/стене под ней)
+    static func limitRafterLength(_ F: inout Framing, _ p: Project, hR: Double, cosA: Double, faceDepth: Double) {
+        let jTop = F.wallTop + (F.attic?.check.sec.wm ?? 0.2)
+        var out: [Member] = []
+        for var m in F.members {
+            guard m.stage == .roof, m.kind == .rafter || m.kind == .hip, m.length > stock + 0.01 else { out.append(m); continue }
+            let dir = simd_normalize(m.b - m.a)
+            let hor = simd_length(V2(dir.x, dir.y))
+            // 1) кобылка: нога начинается от наружной грани стены, свес — отдельной доской сбоку внахлёст
+            if m.kind == .rafter, m.a.z < F.wallTop {
+                let cut = max(0, (faceDepth - 0.05)) / max(hor, 0.1)          // по длине ноги до наружной грани стены
+                let side3 = simd_normalize(simd_cross(dir, m.up)) * m.sec.tm
+                var t = m
+                t.kind = .tail
+                t.sec = Lumber(50, max(100, m.sec.w - 50))
+                t.b = m.a + dir * (cut + 1.0)
+                t.a = m.a + side3
+                t.b += side3
+                out.append(t)
+                m.a = m.a + dir * cut
+            }
+            // 2) всё ещё длиннее 6 м — стык со стойкой-подпоркой
+            var pieces: [Member] = [m]
+            while let last = pieces.last, last.length > stock + 0.01 {
+                pieces.removeLast()
+                let L = last.length
+                let n = Int((L / stock).rounded(.up))
+                let u = L / Double(n)
+                var a = last, b = last
+                a.b = last.a + dir * u
+                b.a = a.b
+                pieces += [a, b]
+                // стойка под стыком: низ ноги в этой точке → верх балок перекрытия (через лежень 50×150 на 3 балки)
+                let j = a.b
+                let bottom = j.z - hR / 2 / max(cosA, 0.3)
+                if bottom - jTop > 0.3 {
+                    var s = Member(kind: .strut, sec: Lumber(100, 100), a: V3(j.x, j.y, jTop), b: V3(j.x, j.y, bottom), up: V3(dir.x, dir.y, 0) / max(hor, 1e-6), stage: .roof)
+                    s.seq = RoofSeq.ties
+                    out.append(s)
+                }
+            }
+            out += pieces
+        }
+        F.members = out
     }
 
     // MARK: - Ведомость пиломатериалов

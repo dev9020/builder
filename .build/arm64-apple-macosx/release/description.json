@@ -80,6 +80,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Girders.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Guides.swift"
         },
         {
@@ -241,6 +245,7 @@
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Floors.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Framing.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Geometry.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Girders.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Guides.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Loads.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Lumber.swift.o",
@@ -364,6 +369,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Geometry.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Girders.swift.o"
         },
         {
           "kind" : "file",
@@ -522,6 +531,7 @@
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Floors.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Framing.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Geometry.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/Girders.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Guides.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Loads.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Lumber.swift",
@@ -589,6 +599,7 @@
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Floors.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Framing.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Geometry.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/Girders.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Guides.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Loads.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Lumber.swift",
@@ -732,6 +743,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Geometry.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Girders.swift"
         },
         {
           "kind" : "file",
@@ -934,6 +949,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Geometry.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Girders.swift.o"
         },
         {
           "kind" : "file",

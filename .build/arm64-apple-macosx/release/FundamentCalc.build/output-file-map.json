@@ -74,6 +74,11 @@
     "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Geometry~partial.swiftmodule",
     "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Geometry.swiftdeps"
   },
+  "/Users/user/workspace/project/builder/Sources/FundamentCalc/Girders.swift": {
+    "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Girders.swift.o",
+    "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Girders~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Girders.swiftdeps"
+  },
   "/Users/user/workspace/project/builder/Sources/FundamentCalc/Guides.swift": {
     "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Guides.swift.o",
     "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Guides~partial.swiftmodule",
