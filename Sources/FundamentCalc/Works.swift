@@ -421,6 +421,9 @@ enum Works {
             mastic = (r.strip.lines.filter { $0.line.isExterior }.reduce(0) { $0 + $1.line.length }) * r.strip.H * 2 * 1.5
         } else if kind == .piles {
             waterTop = totalL * r.piles.bg * 2 * 1.15
+            mastic = totalL * p.grillageH * 2 * 1.5 + totalL * r.piles.bg * 1.5
+        } else if kind == .slab {
+            mastic = p.segments.reduce(0) { $0 + $1.length } * (r.slab.t + 0.1) * 2 * 1.5
         }
         if waterTop > 0 { s6.items.append(WorkItem(name: "Наплавляемая гидроизоляция (2 слоя)", qty: waterTop, unit: "м²", note: "\(Int((waterTop / 10).rounded(.up))) рул. × 10 м²", digits: 0)) }
         if mastic > 0 { s6.items.append(WorkItem(name: "Битумная мастика", qty: mastic, unit: "кг", digits: 0)) }

@@ -377,11 +377,13 @@ enum Drawings {
     static func slabSection(_ c: Ctx, _ cg: CGContext, _ rect: CGRect) {
         let r = c.r.slab
         let t = r.t, w = 1.6
+        let g = -SlabCalc.aboveGround
         let s = Sk(cg, rect, lo: V2(-0.4, -t - c.p.slabCushion - 0.15), hi: V2(w + 0.4, 0.45), pad: 16, right: 70)
         s.box(-0.3, -t - c.p.slabCushion, w, -t, .sand)
         if c.p.soil.heave != .none { s.box(-0.3, -t - 0.1, w, -t, .insulation) }
         s.box(0, -t + (c.p.soil.heave != .none ? 0 : 0), w, 0, .concrete)
-        s.line(V2(-0.4, -0.15), V2(w + 0.4, -0.15), 1, green, dash: [5, 3])
+        s.line(V2(-0.4, g), V2(w + 0.4, g), 1, green, dash: [5, 3])
+        s.dim(V2(w + 0.25, g), V2(w + 0.25, 0), off: 0.05, mm(SlabCalc.aboveGround))
         let cv = r.cover
         var x = cv
         while x < w - 0.01 { s.dot(V2(x, -t + cv + 0.01), 2, red); s.dot(V2(x, -cv - 0.01), 2, red); x += r.step }
@@ -809,7 +811,7 @@ enum Drawings {
         let hR = rf.sec.wm
         let o = c.p.overhang
         let ja = F.attic?.check.sec.wm ?? 0.2
-        let s = Sk(cg, rect, lo: V2(-o - 0.15, -0.55), hi: V2(D + 1.0, 0.75), pad: 10, right: 215)
+        let s = Sk(cg, rect, lo: V2(-o - 0.15, -0.55), hi: V2(D + 1.0, 1.0), pad: 10, right: 215)
         // стена (снаружи — слева, x=0 наружная грань)
         s.box(0, -0.55, D, -0.1, .insulation)
         s.box(0, -0.55, 0.05, -0.1, fill: color(.stud))
@@ -840,9 +842,19 @@ enum Drawings {
         s.line(p0 + top, p1 + top, 2.2, NSColor(srgbRed: 0.5, green: 0.15, blue: 0.13, alpha: 1))
         // уголок
         s.poly([V2(D * 0.3, 0.0), V2(D * 0.3, 0.06), V2(D * 0.3 + 0.06, 0.06)], fill: nil, stroke: .darkGray, w: 2, close: false)
-        // подшива свеса
-        s.line(V2(xs, yb(xs)), V2(0, yb(xs)), 1.2, .brown)
+        // подшива свеса — перфорированный софит: вход воздуха в вентзазор кровли
+        s.line(V2(xs, yb(xs)), V2(0, yb(xs)), 1.2, .brown, dash: [6, 2])
+        let air = NSColor(srgbRed: 0.1, green: 0.55, blue: 0.85, alpha: 1)
+        let gapMid = n + V2(-sin(a), cos(a)) * 0.025
+        s.poly([V2(xs * 0.6, yb(xs) - 0.05), V2(xs * 0.6, yb(xs) + 0.02), p0 + gapMid + dirS * 0.05, p0 + gapMid + dirS * 0.9], fill: nil, stroke: air, w: 1.2, close: false, dash: [4, 2])
+        let tip = p0 + gapMid + dirS * 0.9
+        s.poly([tip, tip - dirS * 0.06 + V2(-sin(a), cos(a)) * 0.025, tip - dirS * 0.06 - V2(-sin(a), cos(a)) * 0.025], fill: air, stroke: air, w: 0.5)
+        if c.p.roofInsulated {
+            s.line(V2(0.01, 0.02), V2(0.01, hR * 0.95), 1.6, NSColor(srgbRed: 0.1, green: 0.6, blue: 0.65, alpha: 1))
+            s.leader(V2(0.01, hR * 0.5), V2(D + 1.05, 0.83), "Ветробарьер у карниза (мембрана между стропилами)")
+        }
         let lx = D + 1.05
+        s.leader(tip, V2(lx, 0.97), "Воздух: софит → вентзазор → вентилируемый конёк")
         s.leader(V2(D * 0.6, hR * 0.6 + yb(D * 0.6)), V2(lx, 0.7), "Стропило \(rf.title) шаг \(mm(rf.step))")
         s.leader(V2(0.5, ja / 2), V2(lx, 0.12), "Балка перекрытия / затяжка \(F.attic?.check.title ?? "")")
         s.leader(V2(D * 0.5, yb(D * 0.5) / 2), V2(lx, -0.02), "Запил ≤ 1/3 h стропила")
@@ -851,7 +863,7 @@ enum Drawings {
         s.leader(V2(0.6, 0.6 * tan(a) + hR + 0.03), V2(lx, 0.55), "Контробрешётка \(F.counterSec.label) / вентзазор")
         s.leader(V2(0.9, 0.9 * tan(a) + hR + 0.01), V2(lx, 0.4), "Мембрана супердиффузионная")
         s.leader(V2(1.1, 1.1 * tan(a) + hR + 0.08), V2(lx, 0.27), "Обрешётка \(F.battenSec.label) шаг \(mm(F.battenStep)) + покрытие")
-        s.leader(V2(-o / 2, yb(xs)), V2(lx, -0.42), "Подшива свеса \(mm(o)) (софит по брускам 50×50)")
+        s.leader(V2(-o / 2, yb(xs)), V2(lx, -0.42), "Подшива свеса \(mm(o)): ПЕРФОРИРОВАННЫЙ софит по брускам 50×50 (вход воздуха)")
     }
 
     static func ridgeNode(_ c: Ctx, _ cg: CGContext, _ rect: CGRect) {

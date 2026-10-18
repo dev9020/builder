@@ -128,6 +128,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Protection.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Rebar.swift"
         },
         {
@@ -237,6 +241,7 @@
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Presets.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Prices.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Project.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Protection.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Rebar.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Report.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/ResultsView.swift.o",
@@ -396,6 +401,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Protection.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Rebar.swift.o"
         },
         {
@@ -499,6 +508,7 @@
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Presets.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Prices.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Project.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/Protection.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Rebar.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Report.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/ResultsView.swift",
@@ -562,6 +572,7 @@
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Presets.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Prices.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Project.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/Protection.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Rebar.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Report.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/ResultsView.swift",
@@ -738,6 +749,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Project.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Protection.swift"
         },
         {
           "kind" : "file",
@@ -924,6 +939,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Project.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Protection.swift.o"
         },
         {
           "kind" : "file",

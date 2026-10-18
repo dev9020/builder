@@ -116,7 +116,7 @@ enum SceneBuilder {
         let foundTop: Double
         switch kind {
         case .strip: foundTop = p.plinth
-        case .slab: foundTop = 0.15
+        case .slab: foundTop = SlabCalc.aboveGround
         case .piles: foundTop = 0.15 + r.piles.hg
         }
 

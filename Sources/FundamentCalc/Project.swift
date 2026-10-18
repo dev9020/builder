@@ -146,7 +146,7 @@ final class Project: ObservableObject {
     @Published var cityIndex = 0 {
         didSet {
             if cityIndex >= 0 && cityIndex < cities.count {
-                mt = cities[cityIndex].mt; snowRegion = cities[cityIndex].snow
+                mt = cities[cityIndex].mt; snowRegion = cities[cityIndex].snow; windRegion = cities[cityIndex].wind
                 tHeat = cities[cityIndex].tHeat; zHeat = cities[cityIndex].zHeat
             }
         }
@@ -163,6 +163,10 @@ final class Project: ObservableObject {
     @Published var sillType: SillType = .timber
     @Published var mt = 23.0
     @Published var snowRegion: SnowRegion = .r3
+    @Published var windRegion: WindRegion = .r1
+    // Отопление: от источника тепла зависят дымоход, разделки и приток в котельную
+    @Published var heatSource: HeatSource = .electric
+    @Published var fireplace = false
     @Published var heated = true
 
     // Грунт

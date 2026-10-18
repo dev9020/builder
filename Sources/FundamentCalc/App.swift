@@ -57,6 +57,15 @@ struct FundamentApp: App {
             let p = Project()
             if let i = CommandLine.arguments.firstIndex(of: "--preset"), i + 1 < CommandLine.arguments.count,
                let pr = HousePreset.all.first(where: { $0.id == CommandLine.arguments[i + 1] }) { pr.apply(p) }
+            func arg(_ k: String) -> String? { CommandLine.arguments.firstIndex(of: k).flatMap { $0 + 1 < CommandLine.arguments.count ? CommandLine.arguments[$0 + 1] : nil } }
+            if let w = arg("--wind").flatMap(Int.init), let wr = WindRegion(rawValue: w) { p.windRegion = wr }
+            if let a = arg("--angle").flatMap(Double.init) { p.roofAngleAuto = false; p.roofAngle = a }
+            if let o = arg("--overhang").flatMap(Double.init) { p.overhang = o }
+            if let f = arg("--facade"), let ff = FacadeFinish(rawValue: f) { p.facade = ff }
+            if let c = arg("--covering"), let cc = RoofCovering(rawValue: c) { p.covering = cc }
+            if CommandLine.arguments.contains("--cold") { p.roofInsulated = false }
+            if CommandLine.arguments.contains("--stove") { p.fireplace = true; p.heatSource = .solid }
+            if let k = arg("--foundation"), let kk = FoundationKind(rawValue: k) { p.selectedFoundation = kk }
             let r = Calculator.run(p)
             let b = BuildPlan.make(p, r)
             let F = b.frame
@@ -78,6 +87,17 @@ struct FundamentApp: App {
             print("ГСОП \(Int(b.gsop)): Rст \(fmt(b.rWall)) → \(Int(b.woolWall * 1000)); Rкр \(fmt(b.rRoof)) → \(Int(b.woolRoof * 1000)); Rпол \(fmt(b.rFloor)) → \(Int(b.woolFloor * 1000)); Rок \(fmt(b.rWindow))")
             for k in MemberKind.allCases { let n = F.members.filter { $0.kind == k }.count; if n > 0 { print("  \(k.rawValue): \(n)") } }
             for row in b.lumber { print("  \(row.sec.label): \(row.pieces) шт, \(fmt(row.totalLength, 0)) м, \(fmt(row.volume, 2)) м³ — \(row.use)") }
+            if let j = CommandLine.arguments.firstIndex(of: "--stage"), j + 1 < CommandLine.arguments.count {
+                let key = CommandLine.arguments[j + 1]
+                for s in b.stages where s.title.lowercased().contains(key.lowercased()) || "\(s.number)" == key {
+                    print("== \(s.number). \(s.title)\n   когда: \(s.when)")
+                    for st in s.steps { print("  • " + st) }
+                    for d in s.decisions { print("  ◆ \(d.title): \(d.value) — \(d.why) [\(d.ref)]") }
+                    if let t = s.table { print("  " + t.head.joined(separator: " | ")); for r in t.rows { print("  " + r.joined(separator: " | ")) } }
+                    for it in s.items { print("  ▸ \(it.name): \(fmt(it.qty, it.digits)) \(it.unit) \(it.note)") }
+                }
+                exit(0)
+            }
             for s in b.stages { print("\(s.number). \(s.title): шагов \(s.steps.count), решений \(s.decisions.count), схем \(s.figures.count), позиций \(s.items.count), \(rub(s.items.reduce(0) { $0 + $1.cost }))") }
             for g in b.groups { print("[\(g.title)] \(rub(g.items.reduce(0) { $0 + $1.cost }))"); for it in g.items { print("    \(it.name): \(fmt(it.qty, it.digits)) \(it.unit) \(rub(it.cost))") } }
             print("ИТОГО \(rub(b.total))")

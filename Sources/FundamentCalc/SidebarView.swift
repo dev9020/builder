@@ -171,6 +171,13 @@ struct SidebarView: View {
             Picker("Тёплый пол", selection: $p.floorHeating) {
                 ForEach(FloorHeating.allCases) { Text($0.title).tag($0) }
             }
+            Picker("Источник тепла", selection: $p.heatSource) {
+                ForEach(HeatSource.allCases) { Text($0.title).tag($0) }
+            }
+            Toggle("Печь / камин на дровах", isOn: $p.fireplace)
+            if p.fireplace || p.heatSource.needsFlue {
+                Text("Будет добавлен этап «Дымоход и противопожарные разделки» (СП 7.13130).").font(.caption).foregroundStyle(.secondary)
+            }
             Picker("Покрытие пола", selection: $p.floorFinish) {
                 ForEach(FloorFinish.allCases) { Text($0.title).tag($0) }
             }
@@ -229,6 +236,9 @@ struct SidebarView: View {
             NumField(title: "Mt (сумма отриц. t°)", value: $p.mt, unit: "°C", range: 0...120, step: 1, digits: 1)
             Picker("Снеговой район", selection: $p.snowRegion) {
                 ForEach(SnowRegion.allCases) { Text($0.title).tag($0) }
+            }
+            Picker("Ветровой район", selection: $p.windRegion) {
+                ForEach(WindRegion.allCases) { Text($0.title).tag($0) }
             }
             Toggle("Дом отапливаемый", isOn: $p.heated)
             NumField(title: "t отоп. периода", value: $p.tHeat, unit: "°C", range: -20...8, step: 0.1, digits: 1)

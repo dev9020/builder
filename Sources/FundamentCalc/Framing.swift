@@ -288,7 +288,7 @@ enum FrameGen {
         // --- Отметки ---
         switch kind {
         case .strip: F.foundTop = p.plinth
-        case .slab: F.foundTop = 0.15
+        case .slab: F.foundTop = SlabCalc.aboveGround
         case .piles: F.foundTop = 0.15 + r.piles.hg
         }
         let woodFloor = kind != .slab && p.groundFloor == .wood

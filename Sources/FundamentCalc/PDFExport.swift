@@ -276,8 +276,8 @@ enum PDFExport {
                 w.text(s.tools.map { "• " + $0 }.joined(separator: "\n"), size: 8.5)
             }
             if let t = s.table {
-                w.heading("Точки подключения", level: 2)
-                w.table(t.head, t.rows, widths: [0.06, 0.2, 0.36, 0.14, 0.24], size: 7.2)
+                w.heading(t.title, level: 2)
+                w.table(t.head, t.rows, widths: t.widths, size: 7.2)
             }
             if !s.fasteners.isEmpty {
                 w.heading("Крепёж: что → чем → инструмент", level: 2)

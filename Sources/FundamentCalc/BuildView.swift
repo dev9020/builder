@@ -157,7 +157,7 @@ struct BuildView: View {
             }
         }
         if s.figures.contains(where: { if case .openingNode = $0.kind { return true }; return false }) { openingsTable(b) }
-        if let t = s.table { GroupBox("Точки подключения") { StageTableView(table: t).padding(6) } }
+        if let t = s.table { GroupBox(t.title) { StageTableView(table: t).padding(6) } }
         let ctx = Drawings.Ctx(p: p, r: model.results, b: b)
         ForEach(s.figures) { f in
             VStack(alignment: .leading, spacing: 4) {

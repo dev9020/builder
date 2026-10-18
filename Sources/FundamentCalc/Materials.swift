@@ -273,31 +273,33 @@ struct City: Identifiable {
     let snow: SnowRegion
     var tHeat = -3.0       // средняя t отопительного периода, °C (СП 131.13330.2020, табл. 3.1, период t ≤ 8 °C)
     var zHeat = 210.0      // его продолжительность, сут
+    var wind: WindRegion = .r2   // ветровой район (СП 20.13330.2016, карта 3)
     var id: String { name }
 }
 
+/// Ветровой район — ориентировочно по карте 3 СП 20.13330.2016 (для Минска, Киева, Алматы, Астаны — по аналогии).
 /// Mt — сумма абсолютных среднемесячных отрицательных температур (ориентировочно, по СП 131.13330).
 let cities: [City] = [
-    City(name: "Москва", mt: 23, snow: .r3, tHeat: -2.2, zHeat: 205),
-    City(name: "Санкт-Петербург", mt: 16, snow: .r3, tHeat: -1.3, zHeat: 213),
-    City(name: "Нижний Новгород", mt: 29, snow: .r4, tHeat: -3.6, zHeat: 211),
-    City(name: "Казань", mt: 35, snow: .r4, tHeat: -4.8, zHeat: 208),
-    City(name: "Самара", mt: 33, snow: .r4, tHeat: -4.7, zHeat: 196),
-    City(name: "Уфа", mt: 43, snow: .r5, tHeat: -5.4, zHeat: 203),
-    City(name: "Пермь", mt: 46, snow: .r5, tHeat: -5.5, zHeat: 222),
-    City(name: "Екатеринбург", mt: 44, snow: .r3, tHeat: -5.4, zHeat: 221),
-    City(name: "Челябинск", mt: 48, snow: .r3, tHeat: -5.7, zHeat: 212),
-    City(name: "Омск", mt: 62, snow: .r3, tHeat: -7.7, zHeat: 216),
-    City(name: "Новосибирск", mt: 63, snow: .r4, tHeat: -7.9, zHeat: 222),
-    City(name: "Красноярск", mt: 54, snow: .r3, tHeat: -6.5, zHeat: 228),
-    City(name: "Иркутск", mt: 64, snow: .r2, tHeat: -7.9, zHeat: 232),
-    City(name: "Хабаровск", mt: 71, snow: .r2, tHeat: -9.3, zHeat: 202),
-    City(name: "Воронеж", mt: 22, snow: .r3, tHeat: -2.5, zHeat: 190),
-    City(name: "Волгоград", mt: 14, snow: .r2, tHeat: -1.7, zHeat: 176),
-    City(name: "Ростов-на-Дону", mt: 7, snow: .r2, tHeat: -0.1, zHeat: 166),
-    City(name: "Краснодар", mt: 1.5, snow: .r2, tHeat: 2.0, zHeat: 145),
-    City(name: "Минск", mt: 13, snow: .r2, tHeat: -0.9, zHeat: 196),
-    City(name: "Киев", mt: 9, snow: .r2, tHeat: -0.1, zHeat: 176),
-    City(name: "Алматы", mt: 11, snow: .r3, tHeat: -1.6, zHeat: 164),
-    City(name: "Астана", mt: 54, snow: .r3, tHeat: -8.1, zHeat: 215),
+    City(name: "Москва", mt: 23, snow: .r3, tHeat: -2.2, zHeat: 205, wind: .r1),
+    City(name: "Санкт-Петербург", mt: 16, snow: .r3, tHeat: -1.3, zHeat: 213, wind: .r2),
+    City(name: "Нижний Новгород", mt: 29, snow: .r4, tHeat: -3.6, zHeat: 211, wind: .r1),
+    City(name: "Казань", mt: 35, snow: .r4, tHeat: -4.8, zHeat: 208, wind: .r2),
+    City(name: "Самара", mt: 33, snow: .r4, tHeat: -4.7, zHeat: 196, wind: .r3),
+    City(name: "Уфа", mt: 43, snow: .r5, tHeat: -5.4, zHeat: 203, wind: .r2),
+    City(name: "Пермь", mt: 46, snow: .r5, tHeat: -5.5, zHeat: 222, wind: .r2),
+    City(name: "Екатеринбург", mt: 44, snow: .r3, tHeat: -5.4, zHeat: 221, wind: .r1),
+    City(name: "Челябинск", mt: 48, snow: .r3, tHeat: -5.7, zHeat: 212, wind: .r2),
+    City(name: "Омск", mt: 62, snow: .r3, tHeat: -7.7, zHeat: 216, wind: .r2),
+    City(name: "Новосибирск", mt: 63, snow: .r4, tHeat: -7.9, zHeat: 222, wind: .r3),
+    City(name: "Красноярск", mt: 54, snow: .r3, tHeat: -6.5, zHeat: 228, wind: .r3),
+    City(name: "Иркутск", mt: 64, snow: .r2, tHeat: -7.9, zHeat: 232, wind: .r3),
+    City(name: "Хабаровск", mt: 71, snow: .r2, tHeat: -9.3, zHeat: 202, wind: .r3),
+    City(name: "Воронеж", mt: 22, snow: .r3, tHeat: -2.5, zHeat: 190, wind: .r2),
+    City(name: "Волгоград", mt: 14, snow: .r2, tHeat: -1.7, zHeat: 176, wind: .r3),
+    City(name: "Ростов-на-Дону", mt: 7, snow: .r2, tHeat: -0.1, zHeat: 166, wind: .r3),
+    City(name: "Краснодар", mt: 1.5, snow: .r2, tHeat: 2.0, zHeat: 145, wind: .r4),
+    City(name: "Минск", mt: 13, snow: .r2, tHeat: -0.9, zHeat: 196, wind: .r1),
+    City(name: "Киев", mt: 9, snow: .r2, tHeat: -0.1, zHeat: 176, wind: .r2),
+    City(name: "Алматы", mt: 11, snow: .r3, tHeat: -1.6, zHeat: 164, wind: .r2),
+    City(name: "Астана", mt: 54, snow: .r3, tHeat: -8.1, zHeat: 215, wind: .r4),
 ]

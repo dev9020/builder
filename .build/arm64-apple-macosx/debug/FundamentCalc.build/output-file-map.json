@@ -158,6 +158,12 @@
     "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Project~partial.swiftmodule",
     "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Project.swiftdeps"
   },
+  "/Users/user/workspace/project/builder/Sources/FundamentCalc/Protection.swift": {
+    "dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Protection.d",
+    "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Protection.swift.o",
+    "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Protection~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Protection.swiftdeps"
+  },
   "/Users/user/workspace/project/builder/Sources/FundamentCalc/Rebar.swift": {
     "dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Rebar.d",
     "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/debug/FundamentCalc.build/Rebar.swift.o",

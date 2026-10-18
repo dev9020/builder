@@ -134,6 +134,11 @@
     "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Project~partial.swiftmodule",
     "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Project.swiftdeps"
   },
+  "/Users/user/workspace/project/builder/Sources/FundamentCalc/Protection.swift": {
+    "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Protection.swift.o",
+    "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Protection~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Protection.swiftdeps"
+  },
   "/Users/user/workspace/project/builder/Sources/FundamentCalc/Rebar.swift": {
     "object": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Rebar.swift.o",
     "swiftmodule": "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Rebar~partial.swiftmodule",

@@ -17,6 +17,9 @@ struct SlabResult {
 }
 
 enum SlabCalc {
+    /// Верх плиты над спланированной землёй, м: низ деревянной обвязки — не ниже 300 мм (зона брызг и снега)
+    static let aboveGround = 0.3
+
     static func run(_ p: Project, _ L: LoadResult) -> SlabResult {
         var r = SlabResult()
         let soil = p.soil
@@ -43,7 +46,7 @@ enum SlabCalc {
         var t = max(0.15, p.slabMinThickness)
         while t <= 0.6 + 1e-9 {
             r.t = t
-            r.depth = max(0, t + p.slabCushion - 0.15)
+            r.depth = max(0, t + p.slabCushion - SlabCalc.aboveGround)
             r.R = Soil.R(soil, b: bEq, d: r.depth, gwl: p.gwl)
             let G = 25 * t
             r.pavg = Nk / r.area + G + L.slabAreaChar

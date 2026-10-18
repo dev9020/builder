@@ -16,8 +16,9 @@ extension Drawings {
     }
 
     static func layersOf(_ c: Ctx) -> WallLayers {
-        let brick = c.p.facade == .facingBrick
-        return WallLayers(facade: brick ? 0.12 : 0.02, gap: brick ? 0.04 : 0.025, osb: c.p.sheathing.hasOSB ? 0.009 : 0,
+        let brick = c.p.facade == .facingBrick, plaster = c.p.facade == .plaster
+        // штукатурный фасад (СФТК): минвата 100 + штукатурка 10, без вентзазора
+        return WallLayers(facade: brick ? 0.12 : plaster ? 0.11 : 0.02, gap: brick ? 0.04 : plaster ? 0 : 0.025, osb: c.p.sheathing.hasOSB ? 0.009 : 0,
                           stud: c.b.frame.studExt.wm, batten: 0.025, gkl: c.p.interiorFinish.t)
     }
 
@@ -48,11 +49,15 @@ extension Drawings {
         s.box(X(xI), H - 0.0375, X(xK) + 0.12, H - 0.025, fill: gklFill)
         s.label("перекрытие", V2(X(xS) + 0.02, H + 0.12), size: 6.5, bg: true)
         // фасад
-        s.box(X(xF), -0.05, X(xG), H + 0.2, c.p.facade == .facingBrick ? .concrete : .board)
+        s.box(X(xF), -0.05, X(xG), H + 0.2, c.p.facade == .facingBrick ? .concrete : c.p.facade == .plaster ? .insulation : .board)
         // контррейка (по стойке — за плоскостью разреза)
-        s.box(X(xG), 0.0, X(xO), Module.studLen, fill: NSColor(white: 0.97, alpha: 1), stroke: .gray, w: 0.4)
+        if L.gap > 0 { s.box(X(xG), 0.0, X(xO), Module.studLen, fill: NSColor(white: 0.97, alpha: 1), stroke: .gray, w: 0.4) }
         // мембрана
-        s.line(V2(X(xO) - 0.004, -0.02), V2(X(xO) - 0.004, H + 0.05), 1.6, teal)
+        if c.p.facade != .plaster { s.line(V2(X(xO) - 0.004, -0.02), V2(X(xO) - 0.004, H + 0.05), 1.6, teal) }
+        // цокольный отлив с капельником: из-под мембраны наружу за плоскость фасада
+        let fl = NSColor(srgbRed: 0.35, green: 0.38, blue: 0.42, alpha: 1)
+        s.poly([V2(X(xO), -0.07), V2(X(xF) - 0.05, -0.12), V2(X(xF) - 0.05, -0.15)], fill: nil, stroke: fl, w: 1.8, close: false)
+        if L.gap > 0 { s.line(V2(X(xG), -0.04), V2(X(xO), -0.04), 2.2, .darkGray, dash: [2, 2]) }
         // ОСП
         if L.osb > 0 {
             let top = mod ? Module.seamZ + 2.5 : H
@@ -137,8 +142,16 @@ extension Drawings {
         // выноски слева — наружные слои
         let lx = -0.3
         s.leader(V2(X(xF + L.facade / 2), H * 0.92), V2(lx, H * 0.95), "\(c.p.facade.title)\n\(Kit.facadeSize(c.p.facade))", size: 6.5, maxW: 150)
-        s.leader(V2(X(xG + L.gap / 2), H * 0.78), V2(lx, H * 0.8), "Контррейка 25×50×3000 по каждой стойке — вентзазор \(mm(L.gap))", size: 6.5, maxW: 150)
-        s.leader(V2(X(xO) - 0.004, H * 0.63), V2(lx, H * 0.64), "Ветрозащитная мембрана, рулон 1.5 м, нахлёст 150", size: 6.5, maxW: 150)
+        if L.gap > 0 {
+            s.leader(V2(X(xG + L.gap / 2), H * 0.78), V2(lx, H * 0.8), "Контррейка 25×50×3000 по каждой стойке — вентзазор \(mm(L.gap)), открыт вверху и внизу", size: 6.5, maxW: 150)
+            s.leader(V2(X(xG + L.gap / 2), -0.04), V2(lx, 0.07), "Перфорированная планка: вход воздуха, от грызунов", size: 6.5, maxW: 150)
+        }
+        if c.p.facade == .plaster {
+            s.leader(V2(X(xO) - 0.004, H * 0.63), V2(lx, H * 0.64), "Без мембраны: минвата СФТК по ОСП, стыки ОСП — диффузионная лента; штукатурка только минеральная", size: 6.5, maxW: 150)
+        } else {
+            s.leader(V2(X(xO) - 0.004, H * 0.63), V2(lx, H * 0.64), "Ветрозащитная мембрана, рулон 1.5 м, нахлёст 150", size: 6.5, maxW: 150)
+        }
+        s.leader(V2(X(xF) - 0.03, -0.11), V2(lx, -0.17), c.p.facade == .plaster ? "Цокольный профиль СФТК + отлив с капельником" : "Цокольный отлив с капельником под мембраной", size: 6.5, maxW: 150)
         if L.osb > 0 {
             s.leader(V2(X(xO + L.osb / 2), H * 0.45), V2(lx, H * 0.47), mod ? "ОСП-3 9 мм: лист 2500×1250 вертикально" : "ОСП-3 9 мм", size: 6.5, maxW: 150)
             if mod { s.leader(V2(X(xO + L.osb / 2), 0.3), V2(lx, 0.3), "Полоса ОСП 625 (лист пополам вдоль)", size: 6.5, maxW: 150) }
@@ -212,7 +225,7 @@ extension Drawings {
         s.leader(V2(2 * step + 0.3, D / 2), V2(rx, D * 0.8), "Плита 600 → просвет \(mm(step - 0.05)): в распор, без подрезки", size: 6.5)
         s.leader(V2(3 * step, D / 2), V2(rx, D * 0.4), "Стойка \(c.b.frame.studExt.label) шаг \(mm(step))", size: 6.5)
         if L.osb > 0 { s.leader(V2(1.25, yO / 2), V2(rx, 0.0), "Стык листов ОСП — по оси стойки", size: 6.5) }
-        s.leader(V2(3 * step, (yG + yO) / 2), V2(rx, -0.07), "Контррейка 25×50 по стойке", size: 6.5)
+        if L.gap > 0 { s.leader(V2(3 * step, (yG + yO) / 2), V2(rx, -0.07), "Контррейка 25×50 по стойке", size: 6.5) }
         s.leader(V2(3.3 * step, (yF + yG) / 2), V2(rx, -0.13), c.p.facade.title, size: 6.5)
         s.leader(V2(3.3 * step, D + L.batten + L.gkl / 2), V2(rx, D + 0.08), "ГКЛ 12.5 по рейкам 25×50", size: 6.5)
         s.label("снаружи", V2(-0.1, yF - 0.36), size: 7, color: .gray)
