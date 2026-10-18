@@ -118,7 +118,14 @@ struct SidebarView: View {
     @ViewBuilder var frameSection: some View {
         Section("Этажность и каркас") {
             Stepper("Этажей: \(p.floors)", value: $p.floors, in: 1...3)
-            NumField(title: "Высота этажа", value: $p.floorHeight, range: 2.2...4.5, step: 0.1)
+            Toggle("Стандартные материалы (модуль 625, стойка 3000)", isOn: Binding(get: { p.modular }, set: { on in if on { p.fitToModule() } else { p.modular = false } }))
+            if p.modular {
+                Text("Высота каркаса 3150 мм = обвязка 50 + стойка 3000 + 2×50; этаж ≈ \(fmt(p.floorHeight, 2)) м с перекрытием. Размеры дома — кратно листу 1250 по наружной грани.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Button("Подогнать размеры и проёмы под модуль") { p.fitToModule() }
+            } else {
+                NumField(title: "Высота этажа", value: $p.floorHeight, range: 2.2...4.5, step: 0.1)
+            }
             Picker("Каркас наружных стен", selection: $p.defaultMaterial) {
                 ForEach(WallMaterial.allCases) { Text($0.title).tag($0) }
             }
@@ -131,7 +138,8 @@ struct SidebarView: View {
                 ForEach(FacadeFinish.allCases) { Text($0.title).tag($0) }
             }
             Picker("Шаг стоек и балок", selection: $p.studStep) {
-                Text("600 мм (под утеплитель 600)").tag(0.6)
+                Text("625 мм (лист 1250 = 2 шага)").tag(0.625)
+                Text("600 мм").tag(0.6)
                 Text("400 мм (усиленный)").tag(0.4)
             }
             Picker("Жёсткость стен", selection: $p.sheathing) {
@@ -154,6 +162,28 @@ struct SidebarView: View {
             }
             Picker("Пол 1-го этажа", selection: $p.groundFloor) {
                 ForEach(GroundFloorType.allCases) { Text($0.title).tag($0) }
+            }
+        }
+        Section("Пол и отделка") {
+            Picker("Основание пола", selection: $p.floorSystem) {
+                ForEach(FloorSystem.allCases.filter { $0.allowed(p.floorBase) }) { Text($0.title).tag($0) }
+            }
+            Picker("Тёплый пол", selection: $p.floorHeating) {
+                ForEach(FloorHeating.allCases) { Text($0.title).tag($0) }
+            }
+            Picker("Покрытие пола", selection: $p.floorFinish) {
+                ForEach(FloorFinish.allCases) { Text($0.title).tag($0) }
+            }
+            if !p.floorSystemNote.isEmpty {
+                Text(p.floorSystemNote).font(.caption).foregroundStyle(.orange)
+            }
+            Text("Пол \(Drawings.mm(p.floorBuildUp)) мм: \(p.floorSystemEff.short). Для дома на плите обычно — полусухая стяжка по ЭППС или тёплый пол прямо в плите; на ленте с балками — ОСП по балкам или сухая стяжка ГВЛ.")
+                .font(.caption).foregroundStyle(.secondary)
+            Picker("Обшивка стен изнутри", selection: $p.interiorFinish) {
+                ForEach(InteriorFinish.allCases) { Text($0.title).tag($0) }
+            }
+            if !p.interiorFinish.isDiaphragm {
+                Text("Вагонка не держит стену от перекоса — во внутренние стены будут добавлены врезные раскосы.").font(.caption).foregroundStyle(.orange)
             }
         }
     }

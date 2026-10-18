@@ -42,6 +42,66 @@ enum Snapshot {
             r.scale = 1
             save(r.nsImage, name)
         }
+        if CommandLine.arguments.contains("--readme") {
+            // картинки для README: 3D, экраны приложения, схемы
+            func top<V: View>(_ v: V, _ name: String, _ size: CGSize) {
+                view(v.frame(width: size.width, height: size.height, alignment: .top).clipped(), name, size)
+            }
+            func fig(_ k: FigKind, _ name: String, aspect: Double, width: Double = 1400) {
+                let r = Calculator.run(model.project)
+                let ctx = Drawings.Ctx(p: model.project, r: r, b: BuildPlan.make(model.project, r))
+                let h = width * aspect
+                let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(width), pixelsHigh: Int(h), bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+                let cg = NSGraphicsContext(bitmapImageRep: rep)!.cgContext
+                cg.translateBy(x: 0, y: h); cg.scaleBy(x: 2, y: -2)
+                Drawings.render(k, ctx, cg, CGRect(x: 0, y: 0, width: width / 2, height: h / 2))
+                if let png = rep.representation(using: .png, properties: [:]) { try? png.write(to: URL(fileURLWithPath: dir).appendingPathComponent(name)) }
+            }
+            HousePreset.all.first { $0.id == "scandi112" }!.apply(p)
+            var o = SceneOptions(); o.site = true
+            scene3D("hero.png", o, high: 0.55, k: 0.62)
+            for (st, n) in [(Stage3D.walls, "stage_walls.png"), (.roof, "stage_roof.png"), (.foundation, "stage_foundation.png")] {
+                var so = SceneOptions(); so.stage = st
+                scene3D(n, so, high: 0.6, k: 0.6)
+            }
+            for id in ["barn84", "l147", "two144"] {
+                HousePreset.all.first { $0.id == id }!.apply(p)
+                var so = SceneOptions(); so.site = true
+                scene3D("preset_\(id).png", so, high: 0.6, k: 0.7)
+            }
+            let w0 = BuildPlan.wallsExt0First(model.plan.frame) ?? 0
+            fig(.wallSection, "fig_wall_section.png", aspect: 0.95, width: 1300)
+            fig(.wallPlan, "fig_wall_plan.png", aspect: 0.4)
+            fig(.sheetLayout(w0, 0), "fig_osb_layout.png", aspect: 0.42)
+            fig(.sheetLayout(w0, 1), "fig_wool_layout.png", aspect: 0.42)
+            fig(.fasteners, "fig_joints.png", aspect: 0.62)
+            fig(.rigidity, "fig_rigidity.png", aspect: 0.42)
+            fig(.sillSteps, "fig_sill_steps.png", aspect: 0.42)
+            fig(.wallElevation(w0), "fig_wall_frame.png", aspect: 0.42)
+            top(BuildView(plainStage: -3), "ui_materials.png", CGSize(width: 1000, height: 1250))
+            top(BuildView(plainStage: 8), "ui_walls_stage.png", CGSize(width: 1000, height: 1500))
+            top(BuildView(plainStage: 6), "ui_sill_stage.png", CGSize(width: 1000, height: 1500))
+            top(BuildView(plainStage: -4), "ui_joints.png", CGSize(width: 1000, height: 900))
+            top(BuildView(plainStage: -5), "ui_order.png", CGSize(width: 1000, height: 1300))
+            let fl = model.plan.stages.firstIndex { $0.title.hasPrefix("Пол") } ?? 0
+            fig(.floorSection, "fig_floor_wood.png", aspect: 0.55)
+            HousePreset.all.first { $0.id == "l114" }!.apply(model.project)
+            model.project.floorHeating = .water
+            let r2 = Calculator.run(model.project)
+            model.results = r2; model.plan = BuildPlan.make(model.project, r2)
+            fig(.floorSection, "fig_floor_slab.png", aspect: 0.55)
+            fig(.heatingLoop, "fig_heating_loop.png", aspect: 0.62)
+            let fl2 = model.plan.stages.firstIndex { $0.title.hasPrefix("Пол") } ?? fl
+            top(BuildView(plainStage: fl2), "ui_floor_stage.png", CGSize(width: 1000, height: 1500))
+            HousePreset.all.first { $0.id == "scandi112" }!.apply(model.project)
+            let r3 = Calculator.run(model.project)
+            model.results = r3; model.plan = BuildPlan.make(model.project, r3)
+            fig(.furniturePlan, "fig_furniture.png", aspect: 0.7)
+            fig(.plumbingPlan, "fig_plumbing.png", aspect: 0.75)
+            fig(.siteNetworks, "fig_site_networks.png", aspect: 0.75)
+            fig(.sewerProfile, "fig_sewer_profile.png", aspect: 0.4)
+            return
+        }
         if CommandLine.arguments.contains("--weights-only") {
             let d = Project(); d.applyShapeDefault(.lShape)
             view(WeightsView(w: Weights.make(d, Calculator.run(d)), kind: d.selectedFoundation).padding(), "weights.png", CGSize(width: 980, height: 330))

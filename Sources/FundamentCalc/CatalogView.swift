@@ -13,7 +13,10 @@ struct CatalogView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                Text("Готовые проекты").font(.title2.bold())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Готовые проекты").font(.title2.bold())
+                    Text("Все проекты — из стандартных материалов: шаг 625, стойка 3000, размеры кратны листу 1250, типовые окна и двери").font(.caption).foregroundStyle(.secondary)
+                }
                 Spacer()
                 Picker("Форма", selection: $shape) {
                     Text("Все формы").tag(HouseShape?.none)

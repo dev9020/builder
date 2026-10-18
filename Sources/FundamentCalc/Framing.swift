@@ -4,14 +4,17 @@ import simd
 typealias V3 = SIMD3<Double>
 
 enum Sheathing: String, CaseIterable, Identifiable {
-    case osb, braces
+    case osb, osbBraces, braces
     var id: String { rawValue }
     var title: String {
         switch self {
         case .osb: return "ОСП-3 9 мм снаружи (диафрагма жёсткости)"
+        case .osbBraces: return "ОСП-3 9 мм + врезные раскосы в углах"
         case .braces: return "Врезные раскосы 25×100 + ветрозащита"
         }
     }
+    var hasOSB: Bool { self != .braces }
+    var hasBraces: Bool { self != .osb }
 }
 
 enum SillType: String, CaseIterable, Identifiable {
@@ -49,6 +52,7 @@ enum MemberKind: String, CaseIterable {
     case rim = "Обвязочная доска перекрытия"
     case joist = "Балка перекрытия"
     case blocking = "Распорка между балками"
+    case nogging = "Распорка стены (под стык листов)"
     case bottomPlate = "Нижняя обвязка стены"
     case stud = "Стойка каркаса"
     case cornerStud = "Угловая / доп. стойка"
@@ -76,7 +80,7 @@ enum MemberKind: String, CaseIterable {
         switch self {
         case .sill: return (0.55, 0.42, 0.28)
         case .rim, .joist, .ceilingJoist: return (0.86, 0.72, 0.50)
-        case .blocking: return (0.80, 0.66, 0.45)
+        case .blocking, .nogging: return (0.80, 0.66, 0.45)
         case .bottomPlate, .topPlate, .capPlate: return (0.78, 0.62, 0.40)
         case .stud, .cornerStud, .gableStud: return (0.93, 0.80, 0.58)
         case .king, .jack, .cripple: return (0.90, 0.74, 0.50)
@@ -115,6 +119,8 @@ struct WallFrame: Identifiable {
     var rects: [(kind: MemberKind, u0: Double, u1: Double, z0: Double, z1: Double)] = []
     var braces: [(u0: Double, z0: Double, u1: Double, z1: Double)] = []
     var openings: [(u0: Double, u1: Double, z0: Double, z1: Double, label: String)] = []
+    var temps: [Double] = []            // где ставятся временные укосины (u)
+    var origin = 0.0                    // начало сетки стоек (u), для наружных стен — наружный угол
 }
 
 struct JoistLayout {
@@ -162,6 +168,7 @@ struct Framing {
     var counterSec = Lumber(50, 50)
     var levelBase = 0.0, wallTop = 0.0, foundTop = 0.0
     var wallHeights: [Double] = []
+    var levels: [Double] = []           // отметки низа стен каждого этажа
     var roofQd = 0.0, roofQn = 0.0
 }
 
@@ -190,7 +197,7 @@ enum FrameGen {
     // MARK: - Перекрытия
 
     static func joists(rings: [[V2]], supports allLines: [BearingLine], zBottom: Double, step: Double, qd: Double, qn: Double,
-                       preferX: Bool?, title: String, sizes: [Lumber]) -> JoistLayout {
+                       preferX: Bool?, title: String, sizes: [Lumber], grid: Double = 0) -> JoistLayout {
         let (lo, hi) = Geo.bbox(rings)
         let maxFree = 4.8
         func layout(_ alongX: Bool) -> (lines: [(V2, V2, [Double])], maxSpan: Double, beams: [Double]) {
@@ -201,8 +208,9 @@ enum FrameGen {
             let nC = max(1, Int(((a1 - a0) / maxFree).rounded(.up)))
             let cand = (1..<max(nC, 1)).map { a0 + (a1 - a0) * Double($0) / Double(nC) }
             let c0 = alongX ? lo.y : lo.x, c1 = alongX ? hi.y : hi.x
-            var c = c0 + 0.025
-            var cs: [Double] = []
+            // крайняя балка у стены, остальные — по сетке от наружной грани (над стойками)
+            var cs: [Double] = [c0 + 0.025]
+            var c = grid > 0 ? c0 - grid + ((0.1 + grid) / step).rounded(.up) * step : c0 + 0.025 + step
             while c < c1 - 0.02 { cs.append(c); c += step }
             if let l = cs.last, c1 - 0.025 - l > 0.1 { cs.append(c1 - 0.025) }
             for c in cs {
@@ -246,7 +254,8 @@ enum FrameGen {
         jl.qd = qd; jl.qn = qn
         if chk.step < step - 1e-6 {
             // пересобрать с меньшим шагом
-            let again = joists(rings: rings, supports: allLines, zBottom: zBottom, step: chk.step, qd: qd, qn: qn, preferX: useX, title: title, sizes: sizes)
+            let again = joists(rings: rings, supports: allLines, zBottom: zBottom, step: chk.step, qd: qd, qn: qn, preferX: useX, title: title, sizes: sizes,
+                               grid: abs(chk.step - Module.step) < 1e-6 ? grid : 0)
             return again
         }
         jl.lines = L.lines.map { ($0.0, $0.1) }
@@ -289,11 +298,16 @@ enum FrameGen {
 
         // нагрузки на перекрытия, кПа (СП 20.13330.2016: табл. 7.1, 8.3, п. 8.2.2 — перегородки 0.5 кПа)
         let part = 0.5
-        let gq = (d: (0.7 + part) * 1.2 + 1.5 * 1.3, n: 0.7 + part + 1.5)
+        // пол 1-го этажа: ОСП + выбранное основание и покрытие (сухая стяжка, плитка и т. п.)
+        let gDead = 0.7 + p.floorExtraDead
+        let gq = (d: (gDead + part) * 1.2 + 1.5 * 1.3, n: gDead + part + 1.5)
         let fq = (d: (p.floorType.dead + part) * 1.2 + 1.5 * 1.3, n: p.floorType.dead + part + 1.5)
         let atticLive = p.roofInsulated ? 1.5 : 0.7
         let aq = (d: p.floorType.dead * 1.2 + atticLive * 1.3, n: p.floorType.dead + atticLive)
         let jSizes = [Lumber(50, 150), Lumber(50, 200), Lumber(50, 250)]
+        // балки — по шагу стоек (над стойками), сетка от наружной грани каркаса
+        let jStep = p.modular ? p.studStep : 0.6
+        let jGrid = p.modular ? D / 2 : 0
 
         // карнизные стены — по ним идут затяжки (чердачные балки параллельно стропилам)
         let roofModel0 = RoofModel.of(p)
@@ -302,18 +316,18 @@ enum FrameGen {
 
         var groundJ: JoistLayout?
         if woodFloor {
-            groundJ = joists(rings: rings, supports: lines, zBottom: F.foundTop + sillH, step: 0.6, qd: gq.d, qn: gq.n,
-                             preferX: nil, title: "Перекрытие 1-го этажа (по фундаменту)", sizes: jSizes)
+            groundJ = joists(rings: rings, supports: lines, zBottom: F.foundTop + sillH, step: jStep, qd: gq.d, qn: gq.n,
+                             preferX: nil, title: "Перекрытие 1-го этажа (по фундаменту)", sizes: jSizes, grid: jGrid)
         }
         let interJ: JoistLayout? = floors > 1
-            ? joists(rings: rings, supports: lines, zBottom: 0, step: 0.6, qd: fq.d, qn: fq.n, preferX: nil, title: "Межэтажное перекрытие", sizes: jSizes)
+            ? joists(rings: rings, supports: lines, zBottom: 0, step: jStep, qd: fq.d, qn: fq.n, preferX: nil, title: "Межэтажное перекрытие", sizes: jSizes, grid: jGrid)
             : nil
         var atticJ: JoistLayout? = nil
         if p.roofType != .flat {
             let title = p.roofInsulated ? "Перекрытие мансарды" : "Чердачное перекрытие"
-            let free = joists(rings: rings, supports: lines, zBottom: 0, step: 0.6, qd: aq.d, qn: aq.n, preferX: nil, title: title, sizes: jSizes)
+            let free = joists(rings: rings, supports: lines, zBottom: 0, step: jStep, qd: aq.d, qn: aq.n, preferX: nil, title: title, sizes: jSizes, grid: jGrid)
             if let pref = preferAttic {
-                let tied = joists(rings: rings, supports: lines, zBottom: 0, step: 0.6, qd: aq.d, qn: aq.n, preferX: pref, title: title + " (балки — затяжки стропил)", sizes: jSizes)
+                let tied = joists(rings: rings, supports: lines, zBottom: 0, step: jStep, qd: aq.d, qn: aq.n, preferX: pref, title: title + " (балки — затяжки стропил)", sizes: jSizes, grid: jGrid)
                 // балки вдоль стропил работают затяжками; если пролёт заметно больше — балки по короткому пролёту + отдельные затяжки
                 atticJ = tied.maxSpan <= free.maxSpan + 0.5 || tied.maxSpan <= 5.0 ? tied : free
                 F.separateTies = atticJ!.alongX != pref
@@ -321,15 +335,22 @@ enum FrameGen {
         }
         if p.roofType == .flat {
             let flatQ = (d: p.flatSlab.weight * 1.2 + r.loads.snowS * 1.4, n: p.flatSlab.weight + r.loads.snowS)
-            atticJ = joists(rings: rings, supports: lines, zBottom: 0, step: 0.6, qd: flatQ.d, qn: flatQ.n, preferX: nil,
-                            title: "Балки плоской кровли", sizes: jSizes)
+            atticJ = joists(rings: rings, supports: lines, zBottom: 0, step: jStep, qd: flatQ.d, qn: flatQ.n, preferX: nil,
+                            title: "Балки плоской кровли", sizes: jSizes, grid: jGrid)
         }
         let ghJ = groundJ.map { $0.check.sec.wm } ?? 0
         F.levelBase = F.foundTop + sillH + (woodFloor ? ghJ + 0.022 : 0)
         let interH = interJ.map { $0.check.sec.wm + 0.022 } ?? 0
         let atticH = atticJ.map { $0.check.sec.wm } ?? 0.2
-        F.wallHeights = (0..<floors).map { k in fh - (k < floors - 1 ? interH : atticH) }
-        F.wallTop = F.levelBase + Double(floors - 1) * fh + F.wallHeights.last!
+        if p.modular {
+            // стойка — целая доска 3000: высота каркаса постоянна, этаж = каркас + перекрытие
+            F.wallHeights = Array(repeating: Module.frameH, count: floors)
+            F.levels = (0..<floors).map { F.levelBase + Double($0) * (Module.frameH + interH) }
+        } else {
+            F.wallHeights = (0..<floors).map { k in fh - (k < floors - 1 ? interH : atticH) }
+            F.levels = (0..<floors).map { F.levelBase + Double($0) * fh }
+        }
+        F.wallTop = F.levels.last! + F.wallHeights.last!
 
         // --- Обвязка по фундаменту и анкеры ---
         if kind != .slab {
@@ -375,7 +396,7 @@ enum FrameGen {
         // --- Стены по этажам ---
         let ops = p.validOpenings
         for k in 0..<floors {
-            let z0 = F.levelBase + Double(k) * fh
+            let z0 = F.levels[k]
             let hw = F.wallHeights[k]
             let stage: Stage3D = k == 0 ? .walls : .upper
             // наружные
@@ -393,6 +414,7 @@ enum FrameGen {
                     .map { o -> Opening in var q = o; q.pos -= uOff; return q }
                     .filter { $0.pos > -0.01 && $0.pos < s.length + 0.01 }
                 var wf = WallFrame(name: "Н\(si + 1)", storey: k, exterior: true, depth: depth, length: s.length, height: hw)
+                wf.origin = -uOff - depth / 2      // сетка стоек — от наружного угла
                 frameWall(&F, &wf, p: p, a: s.a, b: s.b, inward: inward, sec: sec, startExt: atStart ? ext : 0, endExt: atEnd ? ext : 0,
                           z0: z0, hw: hw, openings: hostOps, exterior: true, stage: stage, storey: k, junctions: junctions(p, s.a, s.b, except: nil),
                           sip: s.material == .sip, gable: k == floors - 1 ? roofModel0.profile(s.a, s.b) : [])
@@ -558,7 +580,9 @@ enum FrameGen {
         let s0 = -startExt, s1 = L + endExt
         let pt = 0.05
         let zTopB = z0 + hw - 2 * pt
+        let gridOrigin = p.modular ? wf.origin : 0
         wf = WallFrame(name: wf.name, storey: wf.storey, exterior: wf.exterior, depth: D, length: s1 - s0, height: hw)
+        wf.origin = gridOrigin - s0
         func P(_ u: Double) -> V2 { a + dir * u }
         func rect(_ k: MemberKind, _ u0: Double, _ u1: Double, _ zb: Double, _ zt: Double) {
             wf.rects.append((k, u0 - s0, u1 - s0, zb - z0, zt - z0))
@@ -608,14 +632,27 @@ enum FrameGen {
         for ro in ros { add(ro.r0 - 0.075, .king); add(ro.r1 + 0.075, .king) }
         let stepU = sip ? 1.25 : p.studStep
         var cripples: [Double] = []
-        var u = stepU
+        var u = sip ? stepU : gridOrigin + ((s0 + 0.05 - gridOrigin) / stepU).rounded(.up) * stepU
+        if u < s0 + 0.06 { u += stepU }
         while u < s1 - 0.05 {
             if ros.contains(where: { u > $0.r0 - 0.1 && u < $0.r1 + 0.1 }) {
                 if ros.contains(where: { u > $0.r0 + 0.03 && u < $0.r1 - 0.03 }) { cripples.append(u) }
-            } else { add(u, .stud) }
+            } else if !junctions.contains(where: { abs($0.0 - u) < $0.1 / 2 + 0.06 }) { add(u, .stud) }
             u += stepU
         }
         for (u, k) in studs { vertical(k, u, z0 + pt, zTopB) }
+
+        // распорки под горизонтальный стык листов (ОСП снаружи, ГКЛ изнутри) — в каждом пролёте вне проёмов
+        if p.modular && !sip {
+            let zs = z0 + Module.seamZ - pt / 2
+            let xs = studs.map(\.0).sorted()
+            for i in 1..<max(xs.count, 1) {
+                let ua = xs[i - 1] + 0.025, ub = xs[i] - 0.025
+                guard ub - ua > 0.1, !ros.contains(where: { ua < $0.r1 + 0.05 && ub > $0.r0 - 0.05 && $0.zs < zs + 0.1 }) else { continue }
+                F.members.append(Member(kind: .nogging, sec: Lumber(50, sec.w), a: v3(P(ua), zs + pt / 2), b: v3(P(ub), zs + pt / 2), up: V3(0, 0, 1), stage: stage))
+                rect(.nogging, ua, ub, zs, zs + pt)
+            }
+        }
 
         // проёмы: опорные стойки, перемычки, ригели, укороченные стойки
         for ro in ros {
@@ -643,13 +680,31 @@ enum FrameGen {
             }
         }
 
-        // раскосы (если нет ОСП-диафрагмы) — от углов под 45…60°
-        if exterior && p.sheathing == .braces {
+        // раскосы — от углов под 45…60°: снаружи, если нет ОСП-диафрагмы (или выбраны «ОСП + раскосы»);
+        // во внутренних стенах — если изнутри нет листовой обшивки (вагонка не работает как диафрагма)
+        if (exterior && p.sheathing.hasBraces) || (!exterior && !p.interiorFinish.isDiaphragm) {
             let hgt = zTopB - (z0 + pt)
-            let run = min(hgt * 0.75, (s1 - s0) / 2 - 0.2)
-            for (ua, ub) in [(s0 + 0.1, s0 + 0.1 + run), (s1 - 0.1, s1 - 0.1 - run)] where run > 0.8 {
-                let lo = min(ua, ub), hi = max(ua, ub)
-                guard !ros.contains(where: { $0.r1 + 0.1 > lo && $0.r0 - 0.1 < hi }) else { continue }
+            // свободные от проёмов участки стены; в каждом — раскос, у торцов стены — от угла
+            var free: [(Double, Double)] = []
+            var cur = s0
+            for ro in ros.sorted(by: { $0.r0 < $1.r0 }) {
+                if ro.r0 - 0.2 > cur { free.append((cur, ro.r0 - 0.2)) }
+                cur = max(cur, ro.r1 + 0.2)
+            }
+            if s1 > cur { free.append((cur, s1)) }
+            var pairs: [(Double, Double)] = []
+            for (a0, a1) in free where a1 - a0 >= 1.2 {
+                let run = min(hgt * 0.75, a1 - a0 - 0.2)
+                let atStart = abs(a0 - s0) < 1e-6, atEnd = abs(a1 - s1) < 1e-6
+                if atStart && atEnd && a1 - a0 > 2 * run + 0.6 {
+                    pairs += [(a0 + 0.1, a0 + 0.1 + run), (a1 - 0.1, a1 - 0.1 - run)]
+                } else if atEnd && !atStart {
+                    pairs.append((a1 - 0.1, a1 - 0.1 - run))
+                } else {
+                    pairs.append((a0 + 0.1, a0 + 0.1 + run))
+                }
+            }
+            for (ua, ub) in pairs {
                 let pa = v3(P(ua) - inward * (D / 2 - 0.0125), z0 + pt), pb = v3(P(ub) - inward * (D / 2 - 0.0125), zTopB)
                 let d3 = simd_normalize(pb - pa)
                 let up = simd_normalize(simd_cross(n3, d3))
@@ -668,6 +723,7 @@ enum FrameGen {
                     let d3 = simd_normalize(foot - top)
                     let up = simd_normalize(simd_cross(V3(dir.x, dir.y, 0), d3))
                     F.members.append(Member(kind: .tempBrace, sec: Lumber(25, 100), a: top, b: foot, up: up, stage: stage, onlyOwnStage: true))
+                    wf.temps.append(t - s0)
                 }
                 t += 2.4
             }
@@ -800,8 +856,10 @@ enum FrameGen {
             let len = (e.b - e.a).len
             let cA = dot2(e.a, d)
             var us: [Double] = [0.04]
-            var k = ((cA + 0.1) / step).rounded(.up)
-            while k * step - cA < len - 0.1 { us.append(k * step - cA); k += 1 }
+            // стропила — над стойками: та же сетка от наружной грани каркаса
+            let g = p.modular ? ((d.x + d.y) > 0 ? -D / 2 : D / 2) : 0
+            var k = ((cA + 0.1 - g) / step).rounded(.up)
+            while k * step + g - cA < len - 0.1 { us.append(k * step + g - cA); k += 1 }
             us.append(len - 0.04)
             var ends: [(u: Double, end: V3, run: Double)] = []
             for u in us {
@@ -932,18 +990,38 @@ enum FrameGen {
         let use: String
         let totalLength: Double
         let pieces: Int
-        var volume: Double { Double(pieces) * sec.tm * sec.wm * 6.0 }
+        var stock = 6.0                 // длина хлыста, м
+        var whole = false               // элементы ставятся целиком, без реза
+        var volume: Double { Double(pieces) * sec.tm * sec.wm * stock }
     }
 
+    /// Ведомость по стандартным длинам: элементы ровно 3000 (стойки) — целыми досками 3 м,
+    /// короткие ≤ 1 м (распорки, укороченные стойки) — из досок 3 м, остальное — раскрой хлыстов 6 м
     static func takeoff(_ members: [Member]) -> [TakeoffRow] {
+        var out: [TakeoffRow] = []
         var bySec: [Lumber: [Member]] = [:]
         for m in members { bySec[m.sec, default: []].append(m) }
-        return bySec.keys.sorted().map { s in
-            let ms = bySec[s]!
-            let uses = Dictionary(grouping: ms, by: \.kind).sorted { $0.value.count > $1.value.count }.map { "\($0.key.rawValue.lowercased()) (\($0.value.count))" }
-            let total = ms.reduce(0) { $0 + $1.length }
-            let pieces = Int((Double(Timber.pack(ms.map(\.length))) * 1.05).rounded(.up))
-            return TakeoffRow(sec: s, use: uses.prefix(4).joined(separator: ", "), totalLength: total, pieces: pieces)
+        func uses(_ ms: [Member]) -> String {
+            Dictionary(grouping: ms, by: \.kind).sorted { $0.value.count > $1.value.count }.map { "\($0.key.rawValue.lowercased()) (\($0.value.count))" }.prefix(4).joined(separator: ", ")
         }
+        for s in bySec.keys.sorted() {
+            let ms = bySec[s]!
+            let whole = ms.filter { abs($0.length - Module.studLen) < 0.005 }
+            let short = ms.filter { $0.length <= 1.0 && abs($0.length - Module.studLen) >= 0.005 }
+            let rest = ms.filter { $0.length > 1.0 && abs($0.length - Module.studLen) >= 0.005 }
+            if !whole.isEmpty {
+                out.append(TakeoffRow(sec: s, use: uses(whole), totalLength: Double(whole.count) * Module.studLen,
+                                      pieces: Int((Double(whole.count) * 1.03).rounded(.up)), stock: 3, whole: true))
+            }
+            if !short.isEmpty {
+                out.append(TakeoffRow(sec: s, use: uses(short), totalLength: short.reduce(0) { $0 + $1.length },
+                                      pieces: Int((Double(Timber.pack(short.map(\.length), stock: 3)) * 1.05).rounded(.up)), stock: 3))
+            }
+            if !rest.isEmpty {
+                out.append(TakeoffRow(sec: s, use: uses(rest), totalLength: rest.reduce(0) { $0 + $1.length },
+                                      pieces: Int((Double(Timber.pack(rest.map(\.length))) * 1.05).rounded(.up))))
+            }
+        }
+        return out
     }
 }

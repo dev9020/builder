@@ -293,8 +293,9 @@ enum LoadCalc {
         }
         var gDead = 0.0, gDeadD = 0.0, gLive = 0.0
         if p.groundFloor != .onGround {
-            gDead = p.groundFloor.dead + npI
-            gDeadD = p.groundFloor.dead * p.groundFloor.gammaF + npI * 1.2
+            let fl = p.groundFloor.dead + (p.floorBase == .joists ? p.floorExtraDead : 0)
+            gDead = fl + npI
+            gDeadD = fl * p.groundFloor.gammaF + npI * 1.2
             gLive = 1.5
         }
         // Плита: пол 1-го этажа опирается непосредственно на плиту

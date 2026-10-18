@@ -240,6 +240,18 @@ enum Drawings {
         case .ridgeNode: ridgeNode(c, cg, rect)
         case .roofPie: pie(cg, rect, title: "Кровля по скату (сверху вниз)", layers: roofLayers(c))
         case .wallPie: pie(cg, rect, title: "Наружная стена (снаружи внутрь)", layers: wallLayers(c))
+        case .wallSection: wallSection(c, cg, rect)
+        case .wallPlan: wallPlan(c, cg, rect)
+        case .sheetLayout(let i, let layer): sheetLayout(c, cg, rect, i, layer)
+        case .fasteners: fasteners(c, cg, rect)
+        case .sillSteps: sillSteps(c, cg, rect)
+        case .rigidity: rigidity(c, cg, rect)
+        case .floorSection: floorSection(c, cg, rect)
+        case .heatingLoop: heatingLoop(c, cg, rect)
+        case .furniturePlan: furniturePlan(c, cg, rect)
+        case .plumbingPlan: plumbingPlan(c, cg, rect)
+        case .siteNetworks: siteNetworks(c, cg, rect)
+        case .sewerProfile: sewerProfile(c, cg, rect)
         }
         cg.restoreGState()
         cg.setStrokeColor(NSColor(white: 0.75, alpha: 1).cgColor)
@@ -594,6 +606,11 @@ enum Drawings {
             if rc.kind == .header { s.label("перемычка 2×(50×\(mm(rc.z1 - rc.z0)))", V2((rc.u0 + rc.u1) / 2, (rc.z0 + rc.z1) / 2), size: 5.5, ax: 0.5) }
         }
         for b in w.braces { s.line(V2(b.u0, b.z0), V2(b.u1, b.z1), 2.5, color(.brace)) }
+        // места временных укосин (ставятся с внутренней стороны при подъёме стены)
+        for t in w.temps {
+            s.poly([V2(t - 0.07, -0.02), V2(t + 0.07, -0.02), V2(t, 0.1)], fill: color(.tempBrace), stroke: nil)
+        }
+        if !w.temps.isEmpty { s.label("▲ — временные укосины 25×100 при подъёме (\(w.temps.count) шт.)", V2(w.length, w.height + 0.12), size: 6.5, ax: 1, color: color(.tempBrace)) }
         for o in w.openings {
             s.label(o.label, V2((o.u0 + o.u1) / 2, (o.z0 + o.z1) / 2), size: 6, ax: 0.5, color: blue, bg: true)
             s.dim(V2(o.u0, o.z0), V2(o.u1, o.z0), off: -0.12, mm(o.u1 - o.u0))
@@ -680,7 +697,7 @@ enum Drawings {
         s.box(0, h - 0.1, L, h, fill: color(.topPlate))
         var x = 0.0
         while x <= L - 0.05 { s.box(x, 0.05, x + 0.05, h - 0.1, fill: color(.stud), stroke: .gray, w: 0.3); x += c.p.studStep }
-        if c.p.sheathing == .braces {
+        if c.p.sheathing.hasBraces {
             s.line(V2(0.1, 0.05), V2(0.1 + (h - 0.15) * 0.75, h - 0.1), 3, color(.brace))
             s.leader(V2(0.1 + (h - 0.15) * 0.37, h / 2), V2(1.6, h + 0.15), "Раскос 25×100 врезной, 45–60°, по 2 гвоздя 4×100 в каждую стойку")
         }
@@ -928,7 +945,7 @@ enum Drawings {
             Layer(name: "Вентзазор (контррейка 25×50)", t: c.p.facade == .facingBrick ? 0.04 : 0.025, h: .none, fill: NSColor(white: 0.98, alpha: 1)),
             Layer(name: "Ветро-влагозащитная мембрана", t: 0, h: .none, fill: .systemTeal),
         ]
-        if c.p.sheathing == .osb { l.append(Layer(name: "ОСП-3 9 мм", t: 0.009, h: .board)) }
+        if c.p.sheathing.hasOSB { l.append(Layer(name: "ОСП-3 9 мм", t: 0.009, h: .board)) }
         l.append(Layer(name: "Каркас \(F.studExt.label) шаг \(mm(c.p.studStep)) + минвата", t: F.studExt.wm, h: .insulation))
         if extra > 0.01 { l.append(Layer(name: "Доп. утеплитель по брускам 50×50", t: extra, h: .insulation)) }
         l += [Layer(name: "Пароизоляция, швы проклеены", t: 0, h: .none, fill: .systemBlue),

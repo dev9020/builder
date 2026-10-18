@@ -11,11 +11,13 @@ struct Lumber: Hashable, Comparable {
     static func < (a: Lumber, b: Lumber) -> Bool { (a.t, a.w) < (b.t, b.w) }
 
     /// Название для магазина
-    var shopName: String {
-        if t <= 32 { return "Доска обрезная \(label)×6000, хвойные породы, 2 сорт, камерной сушки" }
-        if isBeam { return "Брус \(label)×6000, хвойные породы, 2 сорт, камерной сушки" }
+    var shopName: String { shopName(6.0) }
+    func shopName(_ stock: Double) -> String {
+        let L = Int((stock * 1000).rounded())
+        if t <= 32 { return "Доска обрезная \(label)×\(L), хвойные породы, 2 сорт, камерной сушки" }
+        if isBeam { return "Брус \(label)×\(L), хвойные породы, 2 сорт, камерной сушки" }
         return t <= 50 && w <= 50 ? "Брусок \(label)×3000, хвойные, строганый, сухой"
-                                  : "Доска обрезная \(label)×6000, хвойные породы, 2 сорт, камерной сушки (W ≤ 20 %)"
+                                  : "Доска обрезная \(label)×\(L), хвойные породы, 2 сорт, камерной сушки (W ≤ 20 %)"
     }
 }
 

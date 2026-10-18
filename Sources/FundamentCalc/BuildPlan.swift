@@ -12,6 +12,23 @@ enum FigKind: Hashable {
     case openingNode, windowInstall
     case rafterPlan, eaveNode, ridgeNode, roofPie
     case wallPie
+    case wallSection, wallPlan, sheetLayout(Int, Int), fasteners, sillSteps, rigidity
+    case floorSection, heatingLoop
+    case furniturePlan, plumbingPlan, siteNetworks, sewerProfile
+}
+
+/// Таблица в этапе (например, точки водоснабжения)
+struct StageTable {
+    let head: [String]
+    let rows: [[String]]
+}
+
+/// Крепёж этапа: что крепим → чем (что купить) → чем закручивать/забивать
+struct Fastener: Identifiable {
+    let id = UUID()
+    let what: String
+    let item: String
+    let how: String
 }
 
 struct Figure: Identifiable {
@@ -32,6 +49,11 @@ struct BuildStage: Identifiable {
     var decisions: [Decision] = []
     var figures: [Figure] = []
     var items: [WorkItem] = []
+    var tools: [String] = []
+    var guides: [Guide] = []
+    var fasteners: [Fastener] = []
+    var when = ""              // когда делается / что решить заранее
+    var table: StageTable? = nil
 }
 
 struct OpeningRow: Identifiable {
@@ -53,12 +75,16 @@ struct BuildPlan {
     var gsop = 0.0, rWall = 0.0, rRoof = 0.0, rFloor = 0.0, rWindow = 0.0
     var woolWall = 0.15, woolRoof = 0.2, woolFloor = 0.2
     var wallNet = 0.0, wallGross = 0.0, partitionArea = 0.0, openingArea = 0.0
+    var kit: [KitRow] = []
+    var layout = HouseLayout()
+    var checks: [ModuleCheck] = []
     var total: Double { groups.reduce(0) { $0 + $1.items.reduce(0) { $0 + $1.cost } } }
 
     static func make(_ p: Project, _ r: CalcResults) -> BuildPlan {
         var b = BuildPlan()
         let F = FrameGen.make(p, r)
         b.frame = F
+        b.layout = HouseLayout.make(p, r, F)
         b.works = Works.plan(p, r)
         b.lumber = FrameGen.takeoff(F.members)
         let kind = p.selectedFoundation
@@ -116,8 +142,10 @@ struct BuildPlan {
             }
         }
         let pref = ["Фундамент: бетон и арматура", "Сыпучие, гидро- и теплоизоляция фундамента", "Пиломатериалы", "Плиты ОСП, ГКЛ", "Утеплитель, мембраны, плёнки",
-                    "Крепёж и метизы", "Окна и двери", "Кровля", "Фасад", "Прочее"]
+                    "Крепёж и метизы", "Окна и двери", "Кровля", "Фасад", "Инженерные сети (черновые)", "Водоснабжение и канализация", "Полы и тёплый пол", "Сантехприборы", "Внутренняя отделка", "Прочее"]
         b.groups = pref.compactMap { g in groups[g].map { (g, merge($0)) } } + order.filter { !pref.contains($0) }.map { ($0, merge(groups[$0]!)) }
+        b.kit = Kit.make(p, r, b)
+        b.checks = p.moduleChecks(b)
         _ = area; _ = D
         return b
     }
@@ -136,6 +164,12 @@ struct BuildPlan {
 
     static func group(_ n: String, kind: FoundationKind) -> String {
         let l = n.lowercased()
+        if ["унитаз", "раковина с", "душевой", "ванна акрил", "кухонная мойка", "кран и сифон"].contains(where: { l.contains($0) }) { return "Сантехприборы" }
+        if ["для водоснабжения", "pe-xa 25", "коллектор хв", "коллектор гв", "водорозетк", "теплоизоляция труб", "канализацион", "ревизия ø110", "аэратор", "фильтры:", "бойлер косв", "водонагреватель", "скважин", "кессон", "гидроаккумулятор", "пнд 32", "гильза ввода", "септик", "станция биол", "накопительная ёмкость", "инфильтратор", "греющий кабель для водопровода", "колодец ревизионный", "обсыпки труб"].contains(where: { l.contains($0) }) { return "Водоснабжение и канализация" }
+        let floorKeys = ["ламинат", "кварцвинил", "инженерная доска", "керамогранит", "подложка 2", "подложка для", "1185×585", "плинтус", "pe-xa", "коллектор", "гвл элемент", "элементов пола", "стяжк", "фиброволокно", "маячный", "тёпл", "терморегулятор", "нагревательн", "инфракрасная", "плиточный", "затирка", "свп", "скоба-гарпун", "фитинги", "клей 2к", "кромочная"]
+        if floorKeys.contains(where: { l.contains($0) }) { return "Полы и тёплый пол" }
+        if ["кабель", "металлорукав", "подрозетник", "щит с автомат", "водоснабжения", "канализация пп"].contains(where: { l.contains($0) }) { return "Инженерные сети (черновые)" }
+        if l.contains("вагонка") || l.contains("кляммер") || l.contains("масло-воск") || l.contains("шпаклёвка") { return "Внутренняя отделка" }
         if l.hasPrefix("бетон") || l.hasPrefix("арматура") || l.contains("миксер") || l.contains("вибратор") || l.contains("фиксатор") || l.contains("вязальная") { return "Фундамент: бетон и арматура" }
         if l.hasPrefix("песок") || l.hasPrefix("геотекстиль") || l.hasPrefix("щебень") || l.hasPrefix("эппс") || l.contains("наплавляем") || l.contains("мастика") || l.contains("дренаж") || l.contains("колодец") || l.contains("плитка") || l.contains("бордюр") || l.contains("цпс") || l.contains("рубероид") || l.contains("демпфер") || l.contains("ливн") || l.contains("дождеприём") || l.contains("канализац") { return "Сыпучие, гидро- и теплоизоляция фундамента" }
         if l.hasPrefix("доска") || l.hasPrefix("брус") || l.contains("рейка") || l.contains("столбики") || l.contains("имитация бруса") && false { return "Пиломатериалы" }
@@ -153,8 +187,8 @@ struct BuildPlan {
     static func lumberItems(_ members: [Member], note: String = "") -> [WorkItem] {
         FrameGen.takeoff(members).map { row in
             let vol = row.volume
-            return WorkItem(name: row.sec.shopName, qty: Double(row.pieces), unit: "шт",
-                            note: "\(fmt(vol, 2)) м³; \(row.use)", digits: 0, price: Price.lumberM3(row.sec) * row.sec.tm * row.sec.wm * 6)
+            return WorkItem(name: row.sec.shopName(row.stock) + (row.whole ? " — ставится целиком, без резки" : ""), qty: Double(row.pieces), unit: "шт",
+                            note: "\(fmt(vol, 2)) м³; \(row.use)", digits: 0, price: Price.lumberM3(row.sec) * row.sec.tm * row.sec.wm * row.stock)
         }
     }
 
@@ -191,6 +225,12 @@ struct BuildPlan {
         s1.figures = [Figure(kind: .sitePlan, title: "Размещение дома на участке (отступы, противопожарные разрывы)", aspect: 0.62),
                       Figure(kind: .layout, title: "Схема разбивки: обноска, шнуры, маяки", aspect: 0.5)]
         s1.items = sec(0)?.items ?? []
+        s1.tools = Guides.siteTools; s1.guides = Guides.site(p)
+        s1.fasteners = Fasteners.site
+        s1.steps.insert("Скважину лучше пробурить до начала стройки — будет вода для бетона, раствора и бытовки. Место — по схеме наружных сетей: в глубине участка, \(fmt(b.layout.wellToSeptic, 0)) м от будущего очистного сооружения (нужно ≥ \(Int(p.septic.wellDistance)) м), с подъездом буровой установки.", at: min(4, s1.steps.count))
+        s1.figures.append(Figure(kind: .siteNetworks, title: "Скважина, септик и трассы на участке", aspect: 0.75))
+        s1.when = "до начала стройки; изыскания и уведомление — за 1–2 месяца"
+        s1.steps.append("Сразу решите, какой будет пол и отопление (\(p.floorSystemEff.short)\(p.floorHeating == .none ? "" : ", тёплый пол \(p.floorHeating == .water ? "водяной" : "электрический")")): \(p.floorSystemEff == .inSlab ? "трубы тёплого пола закладываются в плиту ДО бетонирования" : "от этого зависят гильзы под вводы в фундаменте и отметка пола") — см. раздел «Порядок строительства».")
         out.append(s1)
 
         // 2. Земляные работы
@@ -210,6 +250,8 @@ struct BuildPlan {
         case .piles: s2.figures = [Figure(kind: .pileSection, title: "Свая и ростверк", aspect: 0.9)]
         }
         s2.items = sec(1)?.items ?? []
+        s2.tools = Guides.earthTools; s2.guides = Guides.earth
+        s2.when = "после разбивки и выноса осей на обноску"
         out.append(s2)
 
         // 3. Опалубка
@@ -218,6 +260,9 @@ struct BuildPlan {
         s3.steps = sec(2)?.steps ?? []
         s3.decisions = [Decision(title: "Отклонение плоскостей опалубки", value: "≤ 5 мм на 1 м", why: "геометрия фундамента под обвязку каркаса", ref: N.sp70.at("разд. 5, опалубочные работы"))]
         s3.items = sec(2)?.items ?? []
+        s3.tools = Guides.formTools; s3.guides = Guides.form
+        s3.fasteners = Fasteners.form
+        s3.when = "после подушки; до опалубки заказать арматуру и бетон"
         out.append(s3)
 
         // 4. Армирование
@@ -263,6 +308,23 @@ struct BuildPlan {
                                    Figure(kind: .rebarCorner, title: "Угол ростверка: Г-образные стержни", aspect: 0.75)]
         }
         s4.items = sec(3)?.items ?? []
+        s4.tools = Guides.rebarTools; s4.guides = Guides.rebar
+        s4.fasteners = Fasteners.rebar
+        s4.when = "внутри собранной опалубки; до заливки — гильзы под вводы и закладные"
+        let L0 = b.layout
+        s4.steps.append("Перед бетонированием заложить гильзы (труба ПВХ/ПНД Ø110–160) — сверлить фундамент потом трудно и опасно для арматуры: ввод воды — стена \(L0.entryWall), \(fmt(L0.entryOffset, 2)) м от начала стены, на глубине \(fmt(min(L0.waterDepth, 1.2), 2)) м; выпуск канализации — стена \(L0.outletWall), \(fmt(L0.outletOffset, 2)) м, низ на \(fmt(L0.outletDepth, 2)) м ниже земли; кабель — рядом с вводом воды.")
+        if kind == .slab {
+            s4.steps.append("Плита: канализация под плитой (Ø110 от унитазов, Ø50 от остальных приборов, уклоны 2 % и 3 %) укладывается в песчаную подушку ДО армирования, выводы — на 100–150 мм выше будущего чистого пола, заглушены; места выводов — точно по схеме разводки (±20 мм). Водопроводные трубы — в гофре через плиту в зоне коллектора.")
+            s4.figures.append(Figure(kind: .plumbingPlan, title: "Разводка под плитой: выводы канализации и ввод воды", aspect: 0.75))
+        }
+        if p.floorSystemEff == .inSlab {
+            let ha = FloorWorks.heatedArea(p, r), n = FloorWorks.loops(ha)
+            s4.steps += ["Тёплый пол в плите (УШП): трубы PE-Xa 16 мм вяжутся к верхней сетке пластиковыми хомутами через 500 мм, «улиткой» шаг 150 у стен и 200 в центре, \(n) петель ≤ 15 м² каждая, выводы к коллектору — в гофре через плиту.",
+                         "Опрессовать петли 6 бар 24 ч и бетонировать под давлением 3 бар. Схему петель сфотографировать с рулеткой — потом в плиту нельзя сверлить наугад."]
+            s4.items += FloorWorks.baseItems(p, r, area: r.loads.floorArea, perim: 0).filter { !$0.name.contains("Коллектор") && !$0.name.contains("Шкаф") && !$0.name.contains("Фитинги") }
+            s4.items.append(WorkItem(name: "Труба PE-Xa 16×2.0 с антидиффузионным слоем (в плиту)", qty: ha / 0.17 * 1.1 + Double(n) * 8, unit: "м", note: "\(n) петель", digits: 0, price: 75))
+            s4.figures.append(Figure(kind: .heatingLoop, title: "Петля тёплого пола в плите «улиткой»", aspect: 0.62))
+        }
         out.append(s4)
 
         // 5. Бетонирование
@@ -275,6 +337,8 @@ struct BuildPlan {
             Decision(title: "Горизонтальность верха", value: "±10 мм на длину стены", why: "обвязка каркаса ложится без подкладок", ref: N.sp70.at("разд. 5, допуски")),
         ]
         s5.items = (sec(4)?.items ?? []) + (sec(5)?.items ?? [])
+        s5.tools = Guides.concreteTools; s5.guides = Guides.concrete
+        s5.when = "сразу после приёмки армирования; уход 7 суток, каркас — после 70 % прочности"
         out.append(s5)
 
         // 6. Отмостка, дренаж
@@ -284,7 +348,7 @@ struct BuildPlan {
         let dr = Drainage.make(p, r)
         s6.decisions = dr.requirements.map { Decision(title: $0.title, value: $0.value, why: $0.ok ? "выполняется" : "требуется", ref: $0.ref) }
         s6.items = sec(6)?.items ?? []
-        out.append(s6)
+        s6.tools = Guides.drainTools; s6.guides = Guides.drain
 
         // 7. Обвязка
         var s7 = BuildStage(title: kind == .slab ? "Гидроизоляция и нижняя обвязка на плите" : "Обвязка по фундаменту и анкеровка", icon: "rectangle.split.3x1", scene: .floor)
@@ -311,7 +375,11 @@ struct BuildPlan {
             Decision(title: "Анкеровка", value: "М12, шаг ≤ 2.0 м, ≤ 300 мм от концов, \(anchors) шт.", why: "восприятие ветрового отрыва и сдвига; не менее 2 анкеров на каждый элемент", ref: N.sp352.at("разд. «Крепление каркаса к фундаменту»")),
             Decision(title: "Защита древесины", value: "огнебиозащита I–II группы", why: "элементы в контакте с фундаментом — класс условий эксплуатации с периодическим увлажнением", ref: "\(N.g20022.code), \(N.g53292.code)"),
         ]
-        s7.figures = [Figure(kind: .sillNode, title: "Узел опирания обвязки на фундамент (что между бетоном и брусом)", aspect: 0.8),
+        s7.tools = Guides.sillTools; s7.guides = Guides.sill(p, F)
+        s7.fasteners = Fasteners.sill
+        s7.when = "через 7–14 суток после бетонирования (≥ 70 % прочности)"
+        s7.figures = [Figure(kind: .sillSteps, title: "Как стелить гидроизоляцию под брус: 4 шага", aspect: 0.42),
+                      Figure(kind: .sillNode, title: "Узел опирания обвязки на фундамент (что между бетоном и брусом)", aspect: 0.8),
                       Figure(kind: .anchorPlan, title: "План обвязки и расстановка анкеров", aspect: 0.62)]
         var lumberArea = 0.0
         for m in F.members where m.stage == .floor || m.kind == .bottomPlate { lumberArea += m.length * 2 * (m.sec.tm + m.sec.wm) }
@@ -338,7 +406,7 @@ struct BuildPlan {
             let osbFloor = Int((r.loads.floorArea / 3.125 * 1.07).rounded(.up))
             s8.steps = [
                 "По наружному контуру на обвязку ставится обвязочная доска \(ck.sec.label) на ребро (заподлицо с наружной гранью), крепится косыми гвоздями 4×100 через 400 мм.",
-                "Балки \(ck.title) шаг \(Int(ck.step * 1000)) мм \(g.alongX ? "вдоль оси X" : "вдоль оси Y") (\(nJ) шт.), максимальный пролёт \(fmt(g.maxSpan)) м. Разметить шаг на обвязке карандашом от одного угла (оси балок кратны 600 — под размер утеплителя и ОСП).",
+                "Балки \(ck.title) шаг \(Int(ck.step * 1000)) мм \(g.alongX ? "вдоль оси X" : "вдоль оси Y") (\(nJ) шт.), максимальный пролёт \(fmt(g.maxSpan)) м. Разметить шаг шаблоном \(Int(ck.step * 1000)) мм от наружного угла — балки встают над стойками стен, а торцы ОСП 2500 ложатся ровно на балки (4 пролёта).",
                 "Балки опираются на обвязку и промежуточные ленты не менее чем на 100 мм; крепление — оцинкованные опоры/уголки по 2 на конец на анкерных гвоздях 4×40, торцы через обвязочную доску — 3 гвоздя 4×100.",
                 "Над промежуточной опорой балки стыкуются внахлёст (≥ 300 мм, 4 гвоздя 4×100 или 2 болта М12) или в торец с накладками.",
                 g.maxSpan > 2.5 ? "Распорки (блокинг) из той же доски между балками не реже чем через 2 м — против потери устойчивости и для передачи нагрузки соседним балкам." : "Пролёт короткий, распорки достаточно поставить по опорам.",
@@ -357,6 +425,12 @@ struct BuildPlan {
             if !g.beams.isEmpty {
                 s8.steps.insert("⚠︎ Пролёт без промежуточной опоры превышает 4.8 м: под балки нужен прогон (ригель) — пакет 3×(50×\(ck.sec.w)) / клееный брус в уровне балок на кронштейнах, на кирпичных или бетонных столбиках через 1.5–2 м (линии прогонов — на плане), либо несущая перегородка с лентой (вкладка «План»).", at: 1)
                 s8.decisions.append(Decision(title: "Прогоны", value: "\(g.beams.count) линии", why: "пролёт балок ограничен 4.8 м", ref: N.sp64.at("разд. 7, изгибаемые элементы")))
+            }
+            s8.tools = Guides.floorTools; s8.guides = Guides.floor
+            s8.fasteners = Fasteners.floor
+            s8.when = "сразу после обвязки — платформа нужна для сборки стен; утеплитель снизу — сейчас, пока доступ сверху"
+            if p.floorSystemEff != .osbJoists || p.floorFinish == .tile {
+                s8.steps.append("Пол в этом проекте — \(p.floorSystemEff.short): нагрузка от него (\(fmt(p.floorExtraDead, 2)) кПа сверх ОСП) уже учтена в подборе балок. Само основание пола делается позже, на этапе «Пол».")
             }
             s8.figures = [Figure(kind: .joistPlan(0), title: "План раскладки балок пола 1-го этажа", aspect: 0.62),
                           Figure(kind: .floorPie, title: "Пирог пола по балкам", aspect: 0.45)]
@@ -380,39 +454,46 @@ struct BuildPlan {
         // 9. Каркас наружных стен
         var s9 = BuildStage(title: "Каркас наружных стен", icon: "square.split.bottomrightquarter", scene: .walls)
         s9.goal = "Собрать и поднять стены, выставить их по вертикали, связать между собой."
-        let extM = ms { $0.role == 0 && [.bottomPlate, .stud, .cornerStud, .king, .jack, .header, .sillPiece, .cripple, .topPlate, .capPlate, .brace].contains($0.kind) }
+        let extM = ms { $0.role == 0 && [.bottomPlate, .stud, .cornerStud, .king, .jack, .header, .sillPiece, .cripple, .topPlate, .capPlate, .brace, .nogging].contains($0.kind) }
         let temp = ms { $0.kind == .tempBrace && $0.stage == .walls }
         let wallsExt0 = F.walls.indices.filter { F.walls[$0].exterior && F.walls[$0].storey == 0 }
         let st = F.stud
         s9.steps = [
-            "Стены собираются лёжа на платформе пола щитами длиной до 6 м: нижняя обвязка \(F.studExt.label), стойки \(F.studExt.label) с шагом \(Int(p.studStep * 1000)) мм по осям, верхняя обвязка \(F.studExt.label) (второй ряд кладётся после подъёма).",
-            "Разметка: нижнюю и верхнюю обвязку положить рядом, отметить оси стоек одновременно на обеих (от угла, с шагом \(Int(p.studStep * 1000))) — стойки будут строго вертикальны, а стыки ОСП/ГКЛ попадут на стойки.",
+            "Стены собираются лёжа на платформе пола щитами длиной до 6 м: нижняя обвязка \(F.studExt.label), стойки \(F.studExt.label)\(p.modular ? "×3000 — целые доски без подрезки" : "") с шагом \(Int(p.studStep * 1000)) мм по осям, верхняя обвязка \(F.studExt.label) (второй ряд кладётся после подъёма).",
+            "Разметка: нижнюю и верхнюю обвязку положить рядом, отметить оси стоек одновременно на обеих (от наружного угла, с шагом \(Int(p.studStep * 1000))) — стойки будут строго вертикальны, а стыки ОСП попадут на стойки.",
             "Стойка к обвязке — 2 гвоздя 4×100 (или ершёных 3.1×90) в торец через обвязку; двойные стойки и пакеты сшиваются гвоздями 4×100 через 300 мм в шахматном порядке.",
             "Угол — «тёплый»: у проходной стены дополнительная стойка на расстоянии толщины стены (под обшивку изнутри), утеплитель закладывается в угол до сборки. Примыкание перегородки — две стойки по краям перегородки.",
-            "Проверить щит по диагоналям (разница ≤ 5 мм), \(p.sheathing == .osb ? "обшить ОСП-3 9 мм лёжа: гвозди ершёные 2.5×50 / саморезы 3.5×45 шаг 150 мм по краям листа и 300 мм на промежуточных стойках, отступ от кромки 10 мм, зазор между листами 3 мм; стык листов — только на стойке" : "врезать раскосы 25×100 под 45–60° от углов (запил в стойки на толщину доски, по 2 гвоздя 4×100 в каждую стойку)").",
+            "Проверить щит по диагоналям (разница ≤ 5 мм), \(p.sheathing.hasOSB ? "обшить ОСП-3 9 мм лёжа: гвозди ершёные 2.5×50 / саморезы 3.5×45 шаг 150 мм по краям листа и 300 мм на промежуточных стойках, отступ от кромки 10 мм, зазор между листами 3 мм; стык листов — только на стойке" : "врезать раскосы 25×100 под 45–60° от углов (запил в стойки на толщину доски, по 2 гвоздя 4×100 в каждую стойку)").",
             "Подъём стены — вдвоём-втроём; сразу выставить по отвесу/уровню 2 м и закрепить временными укосинами из доски 25×100 (\(temp.count) шт. на этаж, через 2.4 м) к платформе. Укосины снимаются только после обшивки и установки перекрытия.",
             "Нижнюю обвязку прибить к платформе гвоздями 4×100 / саморезами 5×90 через 400 мм в балки и обвязочную доску. Соседние стены в углу стянуть саморезами 5×90 через 300 мм.",
             "Второй ряд верхней обвязки уложить с перевязкой: в углах и на примыканиях он перекрывает стык нижнего ряда; стыки по длине разнести не менее чем на 600 мм; гвозди 4×100 через 400 мм в шахматном порядке.",
         ]
         s9.decisions = [
-            Decision(title: "Стойки", value: "\(F.studExt.label) шаг \(Int(p.studStep * 1000)) мм", why: "под утеплитель 600 мм и ОСП 1250 мм; N = \(fmt(st.N, 1)) кН, φ = \(fmt(st.phi, 2)), σ = \(fmt(st.sigma, 2)) ≤ Rс = \(fmt(Timber.Rc, 1)) МПа" + (st.ok ? "" : " — НЕ ПРОХОДИТ, уменьшить шаг"),
+            Decision(title: "Стойки", value: "\(F.studExt.label)\(p.modular ? "×3000" : "") шаг \(Int(p.studStep * 1000)) мм", why: "\(abs(p.studStep - Module.step) < 1e-6 ? "ОСП 1250 = 2 шага, утеплитель 600 в просвет 575 без подрезки" : "шаг задан вручную"); N = \(fmt(st.N, 1)) кН, φ = \(fmt(st.phi, 2)), σ = \(fmt(st.sigma, 2)) ≤ Rс = \(fmt(Timber.Rc, 1)) МПа" + (st.ok ? "" : " — НЕ ПРОХОДИТ, уменьшить шаг"),
                      ref: "\(N.sp64.at("разд. 7, центрально-сжатые элементы")), \(N.sp352.at("разд. «Стены»"))"),
-            Decision(title: "Пространственная жёсткость", value: p.sheathing == .osb ? "ОСП-3 9 мм снаружи по всем стенам" : "врезные раскосы 25×100 в углах и простенках ≥ 1.2 м",
-                     why: "восприятие ветровой нагрузки; без обшивки каркас «складывается»", ref: "\(N.sp352.at("разд. «Обеспечение пространственной жёсткости»")), \(N.g32567.code)"),
+            Decision(title: "Пространственная жёсткость", value: p.sheathing == .osb ? "ОСП-3 9 мм снаружи по всем стенам (диафрагма)" : p.sheathing == .osbBraces ? "ОСП-3 9 мм + врезные раскосы 25×100 в углах" : "врезные раскосы 25×100 в углах и простенках ≥ 1.2 м",
+                     why: "восприятие ветровой нагрузки; без диагональных связей каркас «складывается». Прибитая по контуру ОСП работает как раскос по всей площади стены; до обшивки — временные укосины" + (p.interiorFinish.isDiaphragm ? "" : ". Изнутри — \(p.interiorFinish.short): она жёсткости не даёт, поэтому во внутренних стенах — врезные раскосы"), ref: "\(N.sp352.at("разд. «Обеспечение пространственной жёсткости»")), \(N.g32567.code)"),
             Decision(title: "Верхняя обвязка", value: "2 ряда \(F.studExt.label) с перевязкой", why: "связывает стены в углах, распределяет нагрузку от балок между стойками", ref: N.sp352.at("разд. «Стены»")),
             Decision(title: "Пиломатериал", value: "сосна/ель 2 сорт, W ≤ 20 %", why: "класс прочности К24; сырая доска при усушке «ведёт» каркас и раскрывает швы", ref: "\(N.g8486.code), \(N.g33080.code)"),
             Decision(title: "Гвозди", value: "4×100, 2.5×50 ершёные", why: "размеры и сортамент гвоздей", ref: N.g4028.code),
         ]
         s9.figures = [Figure(kind: .cornerNode, title: "Угол каркаса («тёплый угол») — план", aspect: 0.62),
                       Figure(kind: .teeNode, title: "Примыкание перегородки — план", aspect: 0.5),
-                      Figure(kind: .bracing, title: p.sheathing == .osb ? "Временные укосины при подъёме стены" : "Раскосы и временные укосины", aspect: 0.5)]
+                      Figure(kind: .rigidity, title: "Откуда жёсткость стены: укосины, раскосы, ОСП", aspect: 0.42),
+                      Figure(kind: .bracing, title: p.sheathing == .osb ? "Временные укосины при подъёме стены" : "Раскосы и временные укосины", aspect: 0.5),
+                      Figure(kind: .fasteners, title: "Соединения элементов каркаса: чем и сколько", aspect: 0.62),
+                      Figure(kind: .wallPlan, title: "Стена в плане: стойки, утеплитель, листы — размеры по модулю 625", aspect: 0.4)]
+            + (wallsExt0.first.map { [Figure(kind: .sheetLayout($0, 0), title: "Раскладка ОСП на стене \(F.walls[$0].name) (снаружи): целые листы и полосы-половинки", aspect: 0.42)] } ?? [])
             + wallsExt0.prefix(12).map { Figure(kind: .wallElevation($0), title: "Развёртка стены \(F.walls[$0].name) (вид изнутри), длина \(fmt(F.walls[$0].length, 2)) м", aspect: 0.42) }
+        s9.tools = Guides.wallTools; s9.guides = [Fasteners.rule] + Guides.walls(p, F)
+        s9.fasteners = Fasteners.walls
+        s9.when = "на готовой платформе пола / плите; все стены этажа — до перекрытия"
         s9.items = lumberItems(extM) + [
             WorkItem(name: "Доска обрезная 25×100×6000 (временные укосины)", qty: Double(Int((Double(temp.count) * 2.2 / 6 + 1).rounded(.up))), unit: "шт", note: "используется повторно на всех этажах", digits: 0, price: Price.lumberM3(Lumber(25, 100)) * 0.025 * 0.1 * 6),
             WorkItem(name: "Гвозди строительные 4×100 (ГОСТ 4028-63)", qty: Double(extM.count) * 6 / 105, unit: "кг", digits: 1, price: Price.nailsKgG),
             WorkItem(name: "Саморезы по дереву 5×90 (углы, обвязка к платформе)", qty: max(1, Double(extM.count) * 0.4 * 0.012), unit: "кг", digits: 1, price: Price.screwsKg),
         ]
-        if p.sheathing == .osb {
+        if p.sheathing.hasOSB {
             let sheets = Int((b.wallNet / 3.125 * 1.08).rounded(.up))
             s9.items += [
                 WorkItem(name: "ОСП-3 9 мм 2500×1250 (обшивка стен снаружи)", qty: Double(sheets), unit: "лист", digits: 0, price: Price.osb9),
@@ -443,6 +524,9 @@ struct BuildPlan {
             Decision(title: "Перемычки", value: "пакет 2–4 доски на ребро, прогиб ≤ l/200" + (F.headers.contains { !$0.check.ok } ? "; ⚠︎ для широких проёмов — LVL/клееный брус по расчёту" : ""), why: "нагрузка от перекрытий и кровли над проёмом", ref: "\(N.sp64.at("разд. 7, изгибаемые элементы")), \(N.sp20.at("табл. Д.1"))"),
             Decision(title: "Остекление в пол", value: "закалённое стекло / триплекс в нижнем поле", why: "безопасность при остеклении ниже 0.6–0.8 м от пола", ref: N.g23166.code),
         ]
+        s10.tools = Guides.openingTools; s10.guides = Guides.opening
+        s10.fasteners = Fasteners.openings
+        s10.when = "обрамление — вместе со стенами; окна заказать сразу по таблице (изготовление 2–3 недели), ставить после кровли"
         s10.figures = [Figure(kind: .openingNode, title: "Обрамление оконного проёма (вид изнутри)", aspect: 0.75),
                        Figure(kind: .windowInstall, title: "Монтажный шов окна в каркасной стене (разрез)", aspect: 0.75)]
         var byBlock: [String: (StdBlock, Int)] = [:]
@@ -471,15 +555,22 @@ struct BuildPlan {
             let bearing = p.partitions.filter(\.onFoundation).count
             s11.steps = [
                 "Несущие внутренние стены (\(bearing) шт.) — из стоек \(F.studInt.label) шаг \(Int(p.studStep * 1000)) с двойной верхней обвязкой; стоят над лентой фундамента/балкой и собираются вместе с наружными, до перекрытия.",
-                "Ненесущие перегородки — стойки \(F.studPart.label) шаг 600 мм; можно ставить после устройства кровли. Верх перегородки к перекрытию — через упругую ленту, без жёсткого защемления (прогиб перекрытия не должен давить на перегородку).",
+                "Ненесущие перегородки — стойки \(F.studPart.label) шаг \(Int(p.studStep * 1000)) мм; можно ставить после устройства кровли. Верх перегородки к перекрытию — через упругую ленту, без жёсткого защемления (прогиб перекрытия не должен давить на перегородку).",
                 "Узел примыкания: в наружной стене — две стойки по краям перегородки (или поперечные бруски через 600 мм по высоте), перегородка притягивается саморезами 5×90 шаг 400 мм.",
                 "В перегородки санузлов и спален — звукоизоляционная минвата 50–100 мм; во влажных зонах — ГКЛВ и обмазочная гидроизоляция.",
                 "Дверные проёмы: перемычка в несущих стенах — пара досок на ребро по расчёту, в перегородках — доска 50×100 плашмя.",
             ]
             s11.decisions = [
                 Decision(title: "Несущие стены", value: "\(F.studInt.label) шаг \(Int(p.studStep * 1000))", why: "опора балок перекрытия, сокращает пролёт", ref: N.sp352.at("разд. «Стены»")),
-                Decision(title: "Перегородки", value: "\(F.studPart.label) шаг 600", why: "нагрузка учтена в перекрытии как 0.5 кПа", ref: N.sp20.at("п. 8.2.2")),
+                Decision(title: "Перегородки", value: "\(F.studPart.label) шаг \(Int(p.studStep * 1000))", why: "нагрузка учтена в перекрытии как 0.5 кПа", ref: N.sp20.at("п. 8.2.2")),
             ]
+            s11.tools = Guides.wallTools; s11.guides = [Guides.walls(p, F)[0]]
+            s11.fasteners = Fasteners.partitions + (p.interiorFinish.isDiaphragm ? [] : [Fastener(what: "Раскос врезной во внутренних стенах", item: "доска 25×100, гвозди 4×100 по 2 в каждую стойку", how: "молоток, пазы — циркулярка + стамеска")])
+            s11.when = "несущие — вместе с наружными, до перекрытия; ненесущие — можно после кровли"
+            if !p.interiorFinish.isDiaphragm {
+                s11.steps.insert("⚠︎ Изнутри стены обшиваются \(p.interiorFinish.short) — декоративные доски на кляммерах не держат стену от перекоса (в отличие от ГКЛ/ОСП, прибитых по контуру). Поэтому в каждой внутренней стене длиной ≥ 2 м врезаются раскосы 25×100 под 45–60° от углов к верхней обвязке (показаны на развёртках). Без них стены «гуляют», трескаются углы и заклинивает двери.", at: 0)
+                s11.decisions.append(Decision(title: "Жёсткость внутренних стен", value: "врезные раскосы 25×100", why: "обшивка вагонкой — не диафрагма; без листа по контуру нужна диагональная связь", ref: N.sp352.at("разд. «Обеспечение пространственной жёсткости»")))
+            }
             s11.figures = [Figure(kind: .teeNode, title: "Примыкание перегородки к наружной стене", aspect: 0.5)]
                 + F.walls.indices.filter { !F.walls[$0].exterior && F.walls[$0].storey == 0 }.prefix(6).map {
                     Figure(kind: .wallElevation($0), title: "Развёртка \(F.walls[$0].name), длина \(fmt(F.walls[$0].length, 2)) м", aspect: 0.42)
@@ -511,11 +602,13 @@ struct BuildPlan {
             if let j, !j.beams.isEmpty {
                 s12.steps.insert("⚠︎ Пролёт межэтажных балок > 4.8 м: прогон (ригель) из клееного бруса или пакета досок в уровне балок, опирающийся на стойки/несущие стены нижнего этажа (линии — на плане). Нагрузку от стоек нужно довести до фундамента.", at: 1)
             }
+            s12.fasteners = Fasteners.upper
+            s12.when = "после стен 1-го этажа и несущих перегородок"
             s12.items = lumberItems(upM) + [
                 WorkItem(name: "ОСП-3 22 мм шпунт 2500×1250 (настил)", qty: Double(Int((r.loads.floorArea * Double(floors - 1) / 3.125 * 1.07).rounded(.up))), unit: "лист", digits: 0, price: Price.osb22),
                 WorkItem(name: "Минераловатные плиты акустические 1200×600×50 мм", qty: r.loads.floorArea * Double(floors - 1) * 0.15 * 1.05, unit: "м³", digits: 2, price: Price.woolM3),
             ]
-            if p.sheathing == .osb {
+            if p.sheathing.hasOSB {
                 s12.items.append(WorkItem(name: "ОСП-3 9 мм 2500×1250 (обшивка стен снаружи)", qty: 0, unit: "лист", note: "учтено в этапе «Каркас наружных стен»", digits: 0))
             }
             out.append(s12)
@@ -554,6 +647,9 @@ struct BuildPlan {
                 Decision(title: "Длина ноги", value: "\(fmt(F.rafterRun / cosA + p.overhang / cosA, 2)) м", why: "проекция \(fmt(F.rafterRun, 2)) м + свес; доска 6 м", ref: N.g24454.code),
                 Decision(title: "Крепление к каркасу", value: "уголки + ветровые скобы", why: "восприятие распора и ветрового отрыва", ref: "\(N.sp64.at("разд. 8 «Соединения»")), \(N.sp17.at("разд. 5"))"),
             ]
+            s13.tools = Guides.roofTools; s13.guides = Guides.rafters(p, F)
+            s13.fasteners = Fasteners.rafters
+            s13.when = "после стен верхнего этажа и чердачных балок; укосины стен ещё стоят"
             s13.figures = [Figure(kind: .joistPlan(99), title: "План раскладки балок чердачного перекрытия", aspect: 0.62),
                            Figure(kind: .rafterPlan, title: "План стропильной системы", aspect: 0.62),
                            Figure(kind: .eaveNode, title: "Опорный (карнизный) узел стропила", aspect: 0.7)]
@@ -594,6 +690,9 @@ struct BuildPlan {
                 Decision(title: "Утепление кровли", value: "\(Int(b.woolRoof * 1000)) мм минваты", why: "Rтр = \(fmt(b.rRoof, 2)) м²·°C/Вт (покрытия), ГСОП \(Int(b.gsop))", ref: N.sp50.at("табл. базовых значений Rтр")),
                 Decision(title: "Водосток и снег", value: "наружный организованный, снегозадержатели", why: "защита отмостки и входов", ref: N.sp17.at("разд. 9")),
             ]
+            s14.tools = Guides.roofTools; s14.guides = Guides.roofing(p)
+            s14.fasteners = Fasteners.roofing(p.covering)
+            s14.when = "сразу за стропилами — дом закрывается от дождя; потом окна"
             s14.figures = [Figure(kind: .roofPie, title: "Кровельный пирог (разрез по скату)", aspect: 0.6)]
             let woolRoofArea = p.roofInsulated ? roofA : r.loads.floorArea
             s14.items = lumberItems(batM) + [
@@ -651,6 +750,9 @@ struct BuildPlan {
             out.append(sf)
         }
 
+        // 14½. Черновая инженерия — до утеплителя
+        out.append(StagesExtra.engineering(p, r, b.layout))
+
         // 15. Утепление стен и фасад
         var s15 = BuildStage(title: "Утепление стен, мембраны, фасад", icon: "square.3.layers.3d", scene: .finish)
         s15.goal = "Закрыть каркас от ветра и пара, утеплить стены, смонтировать фасад."
@@ -667,7 +769,12 @@ struct BuildPlan {
             Decision(title: "Порядок слоёв", value: "паропроницаемость растёт наружу", why: "пароизоляция изнутри, ветрозащита снаружи — влага не конденсируется в утеплителе", ref: N.sp50.at("разд. «Защита от переувлажнения»")),
             Decision(title: "Фасад", value: p.facade.title, why: "навесной с вентзазором", ref: p.facade == .plaster ? N.g55943.code : p.facade == .facingBrick ? N.sp15.code : N.g8242.code),
         ]
-        s15.figures = [Figure(kind: .wallPie, title: "Пирог наружной стены (разрез)", aspect: 0.6)]
+        s15.tools = Guides.insulTools; s15.guides = Guides.insul(Kit.woolLayers(b.woolWall, depth: D))
+        s15.fasteners = Fasteners.facade(p.facade)
+        s15.when = "снаружи (мембрана, фасад) — сразу после окон; изнутри (утеплитель, пароизоляция) — после черновой инженерки"
+        s15.figures = [Figure(kind: .wallSection, title: "Разрез наружной стены: брус, утеплитель, наружная и внутренняя отделка с размерами", aspect: 0.95),
+                       Figure(kind: .wallPie, title: "Пирог наружной стены (слои)", aspect: 0.6)]
+            + (wallsExt0First(F).map { [Figure(kind: .sheetLayout($0, 1), title: "Раскладка утеплителя на стене \(F.walls[$0].name): плиты 1200×600 без подрезки", aspect: 0.42)] } ?? [])
         let facadeArea = b.wallNet + (p.facade == .facingBrick ? 0 : 0)
         s15.items = [
             WorkItem(name: "Минераловатные плиты 1200×600 ρ 30–40 кг/м³ (\(Int(b.woolWall * 1000)) мм)", qty: b.wallNet * b.woolWall * 0.88 * 1.05, unit: "м³",
@@ -683,31 +790,70 @@ struct BuildPlan {
         }
         out.append(s15)
 
-        // 16. Внутренняя обшивка
-        var s16 = BuildStage(title: "Внутренняя обшивка", icon: "rectangle.portrait", scene: .finish)
-        s16.goal = "Закрыть стены и потолки листами под чистовую отделку."
-        let ceil = r.loads.floorArea * Double(floors)
-        let gklA = b.wallNet + b.partitionArea * 2 + ceil
-        let gkl = Int((gklA / 3.0 * 1.1).rounded(.up))
-        s16.steps = [
-            "Гипсокартон 12.5 мм (ГКЛ; в санузлах — ГКЛВ) по обрешётке/стойкам: листы вертикально, стык — на стойке, саморезы 3.5×35 шаг 250 мм по краю и в поле, отступ от кромки 10–15 мм. Под тяжёлую мебель/технику — закладные из ОСП или доски.",
-            "Потолок — по направляющим или обрешётке 25×50 шаг 400 мм поперёк балок.",
-            "Швы: серпянка + шпаклёвка, углы — уголковый профиль. Зазор 5–10 мм у пола.",
-        ]
-        s16.decisions = [Decision(title: "Обшивка", value: "ГКЛ 12.5 мм", why: "класс горючести Г1, ровная основа под отделку", ref: N.g32614.code)]
-        s16.items = [
-            WorkItem(name: "ГКЛ 12.5 мм 2500×1200 (гипсокартон)", qty: Double(gkl), unit: "лист", note: "\(fmt(gklA, 0)) м², из них ~15 % ГКЛВ для влажных зон", digits: 0, price: Price.gkl),
-            WorkItem(name: "Саморезы по дереву для ГКЛ 3.5×35 (фосфат.)", qty: Double(gkl) * 30 * 0.0015, unit: "кг", digits: 1, price: Price.screwsKg),
-        ]
-        out.append(s16)
+        // 16. Основание пола и тёплый пол — после утепления стен, до обшивки
+        let roomPerim = p.segments.reduce(0) { $0 + $1.length } + p.partitions.reduce(0) { $0 + $1.length } * 2
+        var sFloor = FloorWorks.baseStage(p, r, area: r.loads.floorArea, perim: roomPerim)
+        sFloor.when = p.floorSystemEff == .semiDry ? "после черновой инженерки, утепления и пароизоляции стен; до обшивки стен" : "после утепления стен, до обшивки"
+        out.append(sFloor)
+
+        // 17. Внутренняя обшивка
+        out.append(StagesExtra.interior(p, r, b))
+
+        // Наружные сети — до отмостки
+        out.append(PlumbingWorks.externalStage(p, r, b.layout))
+
+        // 18. Отмостка и дренаж — когда фасад и водосток готовы
+        s6.when = "дренажную трубу удобно уложить сразу после фундамента, пока открыта пазуха; отмостку — после фасада и водостоков, чтобы не испачкать и не разбить"
+        out.append(s6)
+
+        // 19. Чистовой пол
+        var sFin = FloorWorks.finishStage(p, r, area: r.loads.floorArea, perim: roomPerim)
+        sFin.when = "последним: после покраски стен и установки дверных коробок"
+        out.append(sFin)
+        out.append(PlumbingWorks.fixturesStage(p, b.layout))
         return out
     }
+
+    /// Что нужно решить до начала стройки
+    static func decideEarly(_ p: Project) -> [String] {
+        var d = [
+            "Фундамент и тип пола: \(p.selectedFoundation.title.lowercased()), пол — \(p.floorSystemEff.short)\(p.floorHeating == .none ? "" : ", тёплый пол \(p.floorHeating == .water ? "водяной" : "электрический")"). От этого зависят отметки, гильзы вводов и подбор балок.",
+            "Вводы коммуникаций: где заходят вода, канализация, кабель — гильзы закладываются в фундамент до бетонирования.",
+            "Окна и двери: все проёмы — стандартные блоки, их можно заказать сразу после фундамента (2–3 недели изготовления) и поставить после кровли.",
+            "Отопление: \(p.floorHeating == .water ? "котёл/тепловой насос и коллектор — место под котельную и шкаф коллектора" : p.floorHeating == .electric ? "мощность ввода под электрический тёплый пол (≈ 150 Вт/м²)" : "радиаторы — закладные под кронштейны в стенах до обшивки").",
+            "Внутренняя обшивка: \(p.interiorFinish.short)\(p.interiorFinish.isDiaphragm ? "" : " — внутренним стенам нужны раскосы, они врезаются при сборке стен"). Под тяжёлые шкафы и бойлер — закладные до обшивки.",
+        ]
+        d.insert("Расстановка мебели и сантехники (раздел «Планировка, мебель, сантехника»): по ней выводятся точки воды и канализации и закладываются гильзы ввода и выпуска — менять её после фундамента и стяжки дорого.", at: 1)
+        d.insert("Скважина и \(p.septic.short): место на участке — скважина ≥ \(Int(p.septic.wellDistance)) м от очистного сооружения; скважину лучше пробурить первой — вода нужна для стройки.", at: 2)
+        if p.floorSystemEff == .inSlab { d.insert("Тёплый пол в плите: схема петель и коллектор — до армирования плиты, трубы укладываются вместе с арматурой.", at: 1) }
+        return d
+    }
+
+    /// Пол по этапам: что делается и когда
+    static func floorTimeline(_ p: Project, _ b: BuildPlan) -> [(String, String)] {
+        func n(_ t: String) -> String { b.stages.first { $0.title.hasPrefix(t) }.map { "Этап \($0.number)" } ?? "—" }
+        var t: [(String, String)] = []
+        switch p.floorBase {
+        case .slab:
+            t.append((n("Армирование") + ": плита", p.floorSystemEff == .inSlab ? "трубы тёплого пола вяжутся к верхней сетке, опрессовка, бетон под давлением" : "плита — несущее основание пола; верх в горизонт ±10 мм"))
+        case .joists:
+            t.append((n("Перекрытие 1-го") + ": балки пола", "балки шаг 625, утеплитель \(Drawings.mm(b.woolFloor)) мм снизу на черепных брусках, ОСП-22 — это платформа для сборки стен"))
+        case .ground:
+            t.append(("Фундамент: пол по грунту", "песок с уплотнением внутри ленты — сразу после фундамента"))
+        }
+        t.append((n("Инженерные") + ": выводы", p.floorHeating == .water ? "подача от котла к коллектору, выводы воды и канализации в полу" : p.floorHeating == .electric ? "выводы воды и канализации, отдельная линия с УЗО под тёплый пол" : "выводы воды и канализации в полу до основания пола"))
+        t.append((n("Пол:") + ": основание", "\(p.floorSystemEff.title) — до обшивки стен"))
+        t.append((n("Чистовой пол") + ": покрытие", "\(p.floorFinish.title) — последним, после покраски стен"))
+        return t
+    }
+
+    static func wallsExt0First(_ F: Framing) -> Int? { F.walls.indices.first { F.walls[$0].exterior && F.walls[$0].storey == 0 } }
 
     static func facadeStep(_ f: FacadeFinish) -> String {
         switch f {
         case .siding: return "Сайдинг: вертикальная обрешётка 25×50 шаг 400 мм, стартовая планка по уровню, J-профили у проёмов, внешние/внутренние углы; панели крепятся саморезами в центр перфорации с зазором 1–2 мм (температурное расширение)."
-        case .imitationTimber: return "Имитация бруса / планкен (ГОСТ 8242-88): вертикальная обрешётка 25×50 шаг 600 мм, доска шипом вверх, крепление кляммерами или финишными гвоздями в шип; торцы и запилы — антисептик, лицевая сторона — лессирующий состав в 2 слоя."
-        case .fiberCement: return "Фиброцементные панели: подсистема из оцинкованного профиля или бруска 50×50 шаг 600 мм, панели — на кляммерах по инструкции производителя, стыки — на профиле."
+        case .imitationTimber: return "Имитация бруса / планкен (ГОСТ 8242-88): вертикальная контррейка 25×50×3000 по каждой стойке (шаг 625), доска 6000 → 5625 (стык на рейке), шипом вверх, крепление кляммерами или финишными гвоздями в шип; торцы и запилы — антисептик, лицевая сторона — лессирующий состав в 2 слоя."
+        case .fiberCement: return "Фиброцементные панели: подсистема из оцинкованного профиля или бруска 50×50 по стойкам (шаг 625), панели — на кляммерах по инструкции производителя, стыки — на профиле."
         case .plaster: return "Штукатурный фасад: по ОСП — фасадная минвата ρ ≥ 130 кг/м³ или ЭППС на клей и дюбели, армирующий слой с сеткой, грунт и декоративная штукатурка (СФТК, ГОСТ Р 55943-2014)."
         case .facingBrick: return "Облицовочный кирпич 120 мм на отдельном выступе фундамента, вентзазор 30–40 мм, гибкие связи из нержавеющей стали/базальтопластика 4–5 шт/м² к стойкам каркаса, продухи внизу и вверху кладки (СП 15.13330.2020)."
         }

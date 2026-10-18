@@ -100,7 +100,7 @@ struct DragSnapshot {
 final class Project: ObservableObject {
     // Форма
     @Published var shape: HouseShape = .rectangle {
-        didSet { if oldValue != shape { edgeConfigs = [:]; partitions = []; openings = [] } }
+        didSet { if oldValue != shape { edgeConfigs = [:]; partitions = []; openings = []; roomMarks = [] } }
     }
     @Published var length = 12.0
     @Published var width = 9.0
@@ -123,6 +123,14 @@ final class Project: ObservableObject {
     // Перекрытия
     @Published var floorType: FloorType = .woodJoists
     @Published var groundFloor: GroundFloorType = .wood
+    // Пол 1-го этажа и отделка
+    @Published var floorSystem: FloorSystem = .osbJoists
+    @Published var floorHeating: FloorHeating = .none
+    @Published var floorFinish: FloorFinish = .laminate
+    @Published var interiorFinish: InteriorFinish = .gkl
+    /// Назначение комнат (ручные пометки) и наружные сети
+    @Published var roomMarks: [RoomMark] = []
+    @Published var septic: SepticType = .bio
 
     // Кровля
     @Published var roofType: RoofType = .gable
@@ -148,7 +156,9 @@ final class Project: ObservableObject {
     var climate: HeatClimate { HeatClimate(tHeat: tHeat, zHeat: zHeat) }
 
     // Каркас (проект дома)
-    @Published var studStep = 0.6
+    @Published var studStep = 0.625
+    /// Модульная система: стойка 3000, шаг 625, размеры кратны листу 1250, только стандартные блоки
+    @Published var modular = true
     @Published var sheathing: Sheathing = .osb
     @Published var sillType: SillType = .timber
     @Published var mt = 23.0
@@ -220,6 +230,7 @@ final class Project: ObservableObject {
             Opening.make(.door, host: .partition(p2.id), pos: 3.8),
             Opening.make(.door, host: .partition(p4.id), pos: 1.2),
         ]
+        fitToModule()
     }
 
     /// Выбор формы: загружается типовой проект этой формы с полной планировкой, тип фундамента сохраняется

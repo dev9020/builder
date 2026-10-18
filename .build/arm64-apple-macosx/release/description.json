@@ -56,11 +56,27 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/DrawingsModular.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/DrawingsPlan.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Floors.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Framing.swift"
         },
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Geometry.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Guides.swift"
         },
         {
           "kind" : "file",
@@ -73,6 +89,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Materials.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Modular.swift"
         },
         {
           "kind" : "file",
@@ -89,6 +109,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/PlanEditorView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Plumbing.swift"
         },
         {
           "kind" : "file",
@@ -113,6 +137,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/ResultsView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Rooms.swift"
         },
         {
           "kind" : "file",
@@ -141,6 +169,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Soil.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/StagesExtra.swift"
         },
         {
           "kind" : "file",
@@ -187,21 +219,28 @@
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Drainage.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/DrainageView.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Drawings.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/DrawingsModular.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/DrawingsPlan.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Floors.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Framing.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Geometry.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Guides.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Loads.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Lumber.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Materials.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Modular.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Norms.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/PDFExport.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Piles.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/PlanEditorView.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Plumbing.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Presets.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Prices.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Project.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Rebar.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Report.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/ResultsView.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Rooms.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Scene3DView.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneBuilder.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/SceneSite.swift.o",
@@ -209,6 +248,7 @@
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Slab.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Snapshot.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Soil.swift.o",
+        "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/StagesExtra.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Strip.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Textures.swift.o",
         "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Weights.swift.o",
@@ -284,11 +324,27 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/DrawingsModular.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/DrawingsPlan.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Floors.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Framing.swift.o"
         },
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Geometry.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Guides.swift.o"
         },
         {
           "kind" : "file",
@@ -301,6 +357,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Materials.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Modular.swift.o"
         },
         {
           "kind" : "file",
@@ -317,6 +377,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/PlanEditorView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Plumbing.swift.o"
         },
         {
           "kind" : "file",
@@ -341,6 +405,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/ResultsView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Rooms.swift.o"
         },
         {
           "kind" : "file",
@@ -369,6 +437,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Soil.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/StagesExtra.swift.o"
         },
         {
           "kind" : "file",
@@ -409,21 +481,28 @@
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Drainage.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/DrainageView.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Drawings.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/DrawingsModular.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/DrawingsPlan.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/Floors.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Framing.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Geometry.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/Guides.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Loads.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Lumber.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Materials.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/Modular.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Norms.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/PDFExport.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Piles.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/PlanEditorView.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/Plumbing.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Presets.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Prices.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Project.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Rebar.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Report.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/ResultsView.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/Rooms.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Scene3DView.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneBuilder.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneSite.swift",
@@ -431,6 +510,7 @@
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Slab.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Snapshot.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Soil.swift",
+        "/Users/user/workspace/project/builder/Sources/FundamentCalc/StagesExtra.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Strip.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Textures.swift",
         "/Users/user/workspace/project/builder/Sources/FundamentCalc/Weights.swift",
@@ -464,21 +544,28 @@
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Drainage.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/DrainageView.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Drawings.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/DrawingsModular.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/DrawingsPlan.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/Floors.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Framing.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Geometry.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/Guides.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Loads.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Lumber.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Materials.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/Modular.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Norms.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/PDFExport.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Piles.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/PlanEditorView.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/Plumbing.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Presets.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Prices.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Project.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Rebar.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Report.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/ResultsView.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/Rooms.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Scene3DView.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneBuilder.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/SceneSite.swift",
@@ -486,6 +573,7 @@
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Slab.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Snapshot.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Soil.swift",
+      "/Users/user/workspace/project/builder/Sources/FundamentCalc/StagesExtra.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Strip.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Textures.swift",
       "/Users/user/workspace/project/builder/Sources/FundamentCalc/Weights.swift",
@@ -581,11 +669,27 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/DrawingsModular.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/DrawingsPlan.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Floors.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Framing.swift"
         },
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Geometry.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Guides.swift"
         },
         {
           "kind" : "file",
@@ -598,6 +702,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Materials.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Modular.swift"
         },
         {
           "kind" : "file",
@@ -614,6 +722,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/PlanEditorView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Plumbing.swift"
         },
         {
           "kind" : "file",
@@ -638,6 +750,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/ResultsView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Rooms.swift"
         },
         {
           "kind" : "file",
@@ -666,6 +782,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/Soil.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/Sources/FundamentCalc/StagesExtra.swift"
         },
         {
           "kind" : "file",
@@ -735,11 +855,27 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/DrawingsModular.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/DrawingsPlan.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Floors.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Framing.swift.o"
         },
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Geometry.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Guides.swift.o"
         },
         {
           "kind" : "file",
@@ -752,6 +888,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Materials.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Modular.swift.o"
         },
         {
           "kind" : "file",
@@ -768,6 +908,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/PlanEditorView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Plumbing.swift.o"
         },
         {
           "kind" : "file",
@@ -792,6 +936,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/ResultsView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Rooms.swift.o"
         },
         {
           "kind" : "file",
@@ -820,6 +968,10 @@
         {
           "kind" : "file",
           "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/Soil.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/user/workspace/project/builder/.build/arm64-apple-macosx/release/FundamentCalc.build/StagesExtra.swift.o"
         },
         {
           "kind" : "file",

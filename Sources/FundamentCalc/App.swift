@@ -29,11 +29,27 @@ struct FundamentApp: App {
                 }
                 print("   стоимость:", costs.joined(separator: "; "))
                 print("   вес: конструкции \(fmt(wr.dead / 9.81, 1)) т, снег \(fmt(wr.snow / 9.81, 1)) т, содержимое \(fmt(wr.contentsSum / 9.81, 1)) т, зимой \(fmt(wr.winter / 9.81, 1)) т; фундамент \(fmt(wr.foundationSelf / 9.81, 1)) т, выдержит \(fmt(wr.capacity / 9.81, 0)) т, нагрузка \(fmt(wr.load / 9.81, 1)) т, запас ×\(fmt(wr.reserve, 1)), лок. \(Int(wr.localRatio * 100))%")
+                let D = p.studDepth
+                print("   наружные размеры каркаса: \(fmt(p.length + D, 2))×\(fmt(p.effW + D, 2)), крылья \(fmt(p.wingA + D, 2))/\(fmt(p.wingB + D, 2)), двор \(fmt(p.innerL - D, 2))×\(fmt(p.innerW - D, 2)), проверки: \(BuildPlan.make(p, r).checks.filter { !$0.ok }.map(\.title))")
                 print("\(pr.id): S=\(fmt(Geo.area(p.rings), 1)) эт=\(p.floors) уклон=\(Int(p.roofAngleEff)) проёмов \(ops.count)/\(p.openings.count) фундамент OK=\(ok)", issues.isEmpty ? "" : issues.joined(separator: "; "))
                 if !ok {
                     let ch = pr.foundation == .strip ? r.strip.checks : r.slab.checks
                     for c in ch where !c.ok { print("   ✘", c.title, c.value) }
                 }
+            }
+            exit(0)
+        }
+        if CommandLine.arguments.contains("--rooms") {
+            for pr in HousePreset.all + [nil] {
+                let p = Project()
+                pr?.apply(p)
+                let r = Calculator.run(p)
+                let L = BuildPlan.make(p, r).layout
+                print("\(pr?.id ?? "default"): " + L.rooms.map { "\($0.name) \(fmt($0.area, 1)) [\(fmt($0.seed.x, 1)),\(fmt($0.seed.y, 1))]" }.joined(separator: "; "))
+                let unplaced = L.rooms.filter { r in !L.furniture.contains { $0.room == r.id } && ![.corridor].contains(r.type) }.map(\.name)
+                print("   мебели \(L.furniture.count), точек \(L.points.count), без мебели: \(unplaced); ввод \(L.entryWall)/\(fmt(L.entryOffset)), выпуск \(L.outletWall)/\(fmt(L.outletOffset)) −\(fmt(L.outletDepth)), септик \(fmt(L.sewerLen, 1)) м вход −\(fmt(L.septicInlet)), скв. \(fmt(L.waterLen, 1)) м, участок \(fmt(L.plotHi.x - L.plotLo.x, 0))×\(fmt(L.plotHi.y - L.plotLo.y, 0))")
+                let kinds = Dictionary(grouping: L.furniture, by: { $0.room }).map { k, v in "\(L.rooms[k].name): " + v.map(\.name).joined(separator: ", ") }
+                for k in kinds.sorted() { print("     " + k) }
             }
             exit(0)
         }
@@ -45,6 +61,13 @@ struct FundamentApp: App {
             let b = BuildPlan.make(p, r)
             let F = b.frame
             print("элементов каркаса: \(F.members.count), стен: \(F.walls.count), анкеров: \(F.anchors.count)")
+            if CommandLine.arguments.contains("--walls") {
+                for w in F.walls where w.storey == 0 {
+                    let xs = w.rects.filter { [.stud, .cornerStud, .king, .jack].contains($0.kind) }.map { "\($0.kind == .stud ? "" : String($0.kind.rawValue.prefix(3)))\(Int((($0.u0 + $0.u1) / 2 * 1000).rounded()))" }
+                    print(w.name, "L=\(fmt(w.length, 3)) origin=\(fmt(w.origin, 3))", xs.joined(separator: " "))
+                    print("   проёмы:", w.openings.map { "\(Int($0.u0 * 1000))–\(Int($0.u1 * 1000))" }.joined(separator: ", "))
+                }
+            }
             print("отметки: верх фунд. \(fmt(F.foundTop)), пол 1 эт. \(fmt(F.levelBase)), верх стен \(fmt(F.wallTop)), стены \(F.wallHeights.map { fmt($0) })")
             for j in F.floors + (F.attic.map { [$0] } ?? []) {
                 print("  \(j.title): \(j.check.title) шаг \(j.check.step) пролёт \(fmt(j.maxSpan)) σ=\(fmt(j.check.sigma, 1)) f=\(fmt(j.check.f * 1000, 0))/\(fmt(j.check.fu * 1000, 0)) ok=\(j.check.ok) линий \(j.lines.count)")
@@ -79,8 +102,12 @@ struct FundamentApp: App {
         if let i = CommandLine.arguments.firstIndex(of: "--figs"), i + 1 < CommandLine.arguments.count {
             MainActor.assumeIsolated {
                 let p = Project()
+                if let j = CommandLine.arguments.firstIndex(of: "--preset"), j + 1 < CommandLine.arguments.count,
+                   let pr = HousePreset.all.first(where: { $0.id == CommandLine.arguments[j + 1] }) { pr.apply(p) }
                 if let j = CommandLine.arguments.firstIndex(of: "--foundation"), j + 1 < CommandLine.arguments.count,
                    let k = FoundationKind(rawValue: CommandLine.arguments[j + 1]) { p.selectedFoundation = k }
+                if CommandLine.arguments.contains("--boards") { p.interiorFinish = .boards }
+                if CommandLine.arguments.contains("--water") { p.floorHeating = .water }
                 let r = Calculator.run(p)
                 let b = BuildPlan.make(p, r)
                 let ctx = Drawings.Ctx(p: p, r: r, b: b)
@@ -96,6 +123,7 @@ struct FundamentApp: App {
                         Drawings.render(f.kind, ctx, cg, CGRect(x: 0, y: 0, width: w / 2, height: h / 2))
                         let png = rep.representation(using: .png, properties: [:])!
                         try? png.write(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]).appendingPathComponent(String(format: "fig%02d.png", n)))
+                        if CommandLine.arguments.contains("--list") { print(String(format: "fig%02d ", n) + f.title) }
                     }
                 }
                 print("схем: \(n)")
@@ -121,7 +149,7 @@ struct FundamentApp: App {
     }
 
     var body: some Scene {
-        WindowGroup("Расчёт фундамента") {
+        WindowGroup("Дом своими руками") {
             ContentView()
                 .environmentObject(model)
                 .environmentObject(model.project)

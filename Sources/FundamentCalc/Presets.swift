@@ -7,7 +7,14 @@ struct HousePreset: Identifiable {
     let summary: String
     let shape: HouseShape
     let foundation: FoundationKind
-    let apply: (Project) -> Void
+    let build: (Project) -> Void
+
+    /// Проект строится и сразу подгоняется под модуль стандартных материалов
+    func apply(_ p: Project) {
+        build(p)
+        p.sheathing = .osb
+        p.fitToModule()
+    }
 
     /// Площадь застройки по осям стен и общая (с учётом этажей)
     func area() -> (footprint: Double, total: Double, floors: Int) {
@@ -43,6 +50,11 @@ struct PresetBuilder {
         p.selectedFoundation = foundation
         p.floorType = floor
         p.groundFloor = foundation == .slab ? .onGround : .wood
+        p.floorSystem = foundation == .slab ? .semiDry : .osbJoists
+        p.floorHeating = foundation == .slab ? .water : .none
+        p.floorFinish = foundation == .slab ? .spc : .laminate
+        p.interiorFinish = .gkl
+        p.roomMarks = []
         p.facade = facade
         p.darkFrames = true
     }
@@ -71,6 +83,9 @@ struct PresetBuilder {
     }
 
     // Типовые размеры
+    /// Назначение комнаты по точке внутри неё
+    func room(_ t: RoomType, _ x: Double, _ y: Double) { p.roomMarks.append(RoomMark(at: V2(x, y), type: t)) }
+
     func bathWindow(_ x: Double, _ y: Double) { open(.window, x, y, w: 0.8, h: 0.6, sill: 1.5) }
     func techWindow(_ x: Double, _ y: Double) { open(.window, x, y, w: 0.8, h: 0.8, sill: 1.2) }
 }
@@ -79,7 +94,7 @@ extension HousePreset {
     static let all: [HousePreset] = [
         // ───────── Квадрат ─────────
         HousePreset(id: "cube81", name: "Куб с плоской кровлей",
-                    summary: "Каркасный куб 200 мм со штукатурным фасадом и плоской кровлей по деревянным балкам: кухня-гостиная 33 м² с окном в пол и порталом, 2 спальни с панорамными окнами, санузел, прихожая. Несущая каркасная стена посередине сокращает пролёт балок до 5.5 м.",
+                    summary: "Каркасный куб 8.75×8.75 м (7×2 листа ОСП по стене), каркас 200 мм со штукатурным фасадом и плоской кровлей по деревянным балкам: кухня-гостиная 33 м² с окном в пол и порталом, 2 спальни с панорамными окнами, санузел, прихожая. Несущая каркасная стена посередине сокращает пролёт балок до 5.5 м.",
                     shape: .square, foundation: .slab) { p in
             let b = PresetBuilder(p: p)
             b.setup(.square, L: 9, W: 9, wall: .frame200, roof: .flat, foundation: .slab, facade: .plaster)
@@ -102,7 +117,7 @@ extension HousePreset {
             b.open(.glassDoor, 1.5, 3, w: 0.9)
         },
         HousePreset(id: "sq100", name: "Под вальмой с кирпичной облицовкой",
-                    summary: "Каркас 200 мм с облицовкой кирпичом 10×10: кухня-гостиная 30 м² с выходом на террасу, 2 спальни, санузел, котельная. Облицовка опирается на ленту — она тяжелее, чем у других каркасных фасадов.",
+                    summary: "Каркас 200 мм с облицовкой кирпичом, 10×10 м по каркасу (8 листов ОСП на стену): кухня-гостиная 30 м² с выходом на террасу, 2 спальни, санузел, котельная. Облицовка опирается на ленту — она тяжелее, чем у других каркасных фасадов.",
                     shape: .square, foundation: .strip) { p in
             let b = PresetBuilder(p: p)
             b.setup(.square, L: 10, W: 10, wall: .frame200, fh: 2.9, roof: .hip, covering: .softShingle, overhang: 0.5, foundation: .strip, facade: .facingBrick)
@@ -129,7 +144,7 @@ extension HousePreset {
 
         // ───────── Прямоугольник ─────────
         HousePreset(id: "barn84", name: "Барнхаус",
-                    summary: "Барнхаус 12×7: каркас 200 мм, фиброцементный фасад, кровля 40° из фальца без свесов. Кухня-гостиная 38 м² с порталом в торце и окнами в пол, 2 спальни с панорамными окнами, санузел.",
+                    summary: "Барнхаус 12.5×7.5 м по каркасу: каркас 200 мм, фиброцементный фасад, кровля 40° из фальца без свесов. Кухня-гостиная 38 м² с порталом в торце и окнами в пол, 2 спальни с панорамными окнами, санузел.",
                     shape: .rectangle, foundation: .slab) { p in
             let b = PresetBuilder(p: p)
             b.setup(.rectangle, L: 12, W: 7, wall: .frame200, roof: .gable, covering: .seam, angle: 40, overhang: 0.15, foundation: .slab, facade: .fiberCement)
@@ -151,7 +166,7 @@ extension HousePreset {
             b.open(.door, 6.5, 4.5)
         },
         HousePreset(id: "scandi112", name: "Скандинавский дом",
-                    summary: "Тёплый каркас 250 мм (с перекрёстным утеплением) и имитация бруса, 14×8. 3 спальни, кухня-гостиная 40 м² с порталом и окнами в пол на сад, санузел, прачечная, котельная.",
+                    summary: "Тёплый каркас 250 мм (с перекрёстным утеплением) и имитация бруса, 13.75×8.75 м по каркасу. 3 спальни, кухня-гостиная 40 м² с порталом и окнами в пол на сад, санузел, прачечная, котельная.",
                     shape: .rectangle, foundation: .strip) { p in
             let b = PresetBuilder(p: p)
             b.setup(.rectangle, L: 14, W: 8, wall: .frame250, fh: 2.8, roof: .gable, covering: .compositeTile, overhang: 0.5, foundation: .strip)
@@ -182,7 +197,7 @@ extension HousePreset {
             b.open(.door, 12.5, 4)
         },
         HousePreset(id: "two144", name: "Двухэтажный каркасный",
-                    summary: "Компактный каркасный 9×8 в 2 этажа (144 м²), сайдинг, перекрытие по балкам со стяжкой под тёплый пол: внизу кухня-гостиная с окном в пол, прихожая, санузел, кабинет; на 2-м этаже — спальни.",
+                    summary: "Компактный каркасный 8.75×8.75 м в 2 этажа (≈ 150 м²), сайдинг, перекрытие по балкам со стяжкой под тёплый пол: внизу кухня-гостиная с окном в пол, прихожая, санузел, кабинет; на 2-м этаже — спальни.",
                     shape: .rectangle, foundation: .strip) { p in
             let b = PresetBuilder(p: p)
             b.setup(.rectangle, L: 9, W: 8, wall: .frame200, floors: 2, fh: 2.8, roof: .gable, covering: .metalTile, overhang: 0.5,
@@ -201,6 +216,8 @@ extension HousePreset {
             b.open(.door, 4.5, 3.4)
             b.open(.glassDoor, 2.25, 4.2, w: 1.2)
             b.open(.door, 3, 5.0)
+            b.room(.hall, 2.2, 2.0)
+            b.room(.office, 6.6, 2.0)
         },
 
         // ───────── Г-образные (плита, скатная кровля) ─────────
@@ -298,14 +315,14 @@ extension HousePreset {
             uLayout(p, L: 16, W: 10.5, d: 4.8, t: 4.4, wall: .frame200, roof: .hip, covering: .seam, facade: .siding)
         },
         HousePreset(id: "u150", name: "П-образный с двускатной кровлей",
-                    summary: "Каркас 200 мм с имитацией бруса, патио 7×6.5 м: кухня-гостиная 41 м² с порталом 3 м, холл с выходом во двор, кабинет, галерея и 2 спальни, санузел, кладовая, гостевой с/у. Кровля 25°.",
+                    summary: "Каркас 200 мм с имитацией бруса, патио во двор: кухня-гостиная 41 м² с порталом 3 м, холл с выходом во двор, кабинет, галерея и 2 спальни, санузел, кладовая, гостевой с/у. Кровля 25°.",
                     shape: .uShape, foundation: .slab) { p in
             uLayout(p, L: 17, W: 11.5, d: 5, t: 4.8, wall: .frame200, roof: .gable, covering: .compositeTile, angle: 25, facade: .imitationTimber)
         },
 
         // ───────── С двором (атриум) ─────────
         HousePreset(id: "atrium153", name: "Дом с атриумом",
-                    summary: "СИП-панели, 13×13 с остеклённым атриумом 4×4 и кольцевым коридором: прихожая, кухня-гостиная 50 м², 2 спальни, санузел, с/у. Плоская кровля по деревянным балкам.",
+                    summary: "СИП-панели, 13.75×13.75 м с остеклённым атриумом 3.75×3.75 и кольцевым коридором: прихожая, кухня-гостиная 50 м², 2 спальни, санузел, с/у. Плоская кровля по деревянным балкам.",
                     shape: .ring, foundation: .strip) { p in
             let b = PresetBuilder(p: p)
             b.setup(.ring, L: 13, W: 13, il: 4, iw: 4, wall: .sip, roof: .flat, foundation: .strip, facade: .plaster)
@@ -357,6 +374,7 @@ extension HousePreset {
         b.wall(rx, 0, rx, W)
         b.wall(rx, 3.2, L, 3.2)
         b.wall(rx, ym, L, ym)
+        b.room(.boiler, t / 4, 1.5)
         // фасад
         b.bathWindow(t * 0.75, 0)
         b.open(.glassDoor, t + 1.5, 0, w: 1.2)

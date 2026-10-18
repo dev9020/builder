@@ -16,7 +16,7 @@ final class PDFWriter {
     init() {
         var box = CGRect(x: 0, y: 0, width: 595, height: 842)
         let consumer = CGDataConsumer(data: data as CFMutableData)!
-        ctx = CGContext(consumer: consumer, mediaBox: &box, [kCGPDFContextCreator as String: "Расчёт фундамента — проект дома"] as CFDictionary)!
+        ctx = CGContext(consumer: consumer, mediaBox: &box, [kCGPDFContextCreator as String: "Дом своими руками — проект каркасного дома"] as CFDictionary)!
     }
 
     var contentW: CGFloat { W - 2 * M }
@@ -189,7 +189,7 @@ enum PDFExport {
         if let img = render3D(p, r, stage: .finish) { w.image(img, height: 290) }
         w.table(["Параметр", "Значение"], [
             ["Дом", "\(p.shape.title), \(fmt(p.length, 1)) × \(fmt(p.effW, 1)) м по осям, площадь застройки \(fmt(area, 1)) м², этажей: \(p.floors), высота этажа \(fmt(p.floorHeight, 2)) м"],
-            ["Стены", "каркас \(F.studExt.label) шаг \(Int(p.studStep * 1000)) мм, \(p.sheathing.title.lowercased()), утеплитель \(Int(b.woolWall * 1000)) мм, фасад: \(p.facade.title.lowercased())"],
+            ["Стены", "каркас \(F.studExt.label)\(p.modular ? "×3000 (целые доски), высота каркаса 3150" : "") шаг \(Int(p.studStep * 1000)) мм, \(p.sheathing.title.lowercased()), утеплитель \(Int(b.woolWall * 1000)) мм, фасад: \(p.facade.title.lowercased())"],
             ["Фундамент", "\(p.selectedFoundation.title.lowercased()), бетон \(p.concrete.title), арматура \(p.rebar.rawValue)"],
             ["Кровля", p.roofType == .flat ? p.roofType.title : "\(p.roofType.title.lowercased()), \(p.covering.title.lowercased()), уклон \(Int(p.roofAngleEff))°, стропила \(F.rafter?.title ?? "—") шаг \(Int((F.rafter?.step ?? 0.6) * 1000))"],
             ["Климат", "\(city): снеговой район \(p.snowRegion.roman), Mt = \(fmt(p.mt, 0)), ГСОП = \(Int(b.gsop)) °C·сут"],
@@ -202,10 +202,59 @@ enum PDFExport {
         // --- Содержание ---
         w.newPage()
         w.heading("Содержание")
-        w.numbered(b.stages.map { $0.title } + ["Развёртки стен каркаса", "Ведомость пиломатериалов", "Сводная ведомость закупки", "Нормативные документы"], size: 10)
+        w.numbered(["Порядок строительства", "Планировка, мебель и сантехника", "Стандартные материалы: дом без лишних резов", "Соединения и крепёж"] + b.stages.map { $0.title } + ["Развёртки стен каркаса", "Ведомость пиломатериалов", "Сводная ведомость закупки", "Нормативные документы"], size: 10)
         w.heading("Ключевые решения", level: 2)
         let key = b.stages.flatMap { s in s.decisions.prefix(3).map { ["\(s.number). \($0.title)", $0.value, $0.ref] } }
         w.table(["Решение", "Принято", "Норматив"], key, widths: [0.3, 0.38, 0.32], size: 7.2)
+
+        // --- Порядок строительства ---
+        w.newPage()
+        w.heading("Порядок строительства")
+        w.heading("Решить до начала стройки", level: 2)
+        w.numbered(BuildPlan.decideEarly(p), size: 8.5)
+        w.heading("Пол: какой и на каком этапе", level: 2)
+        w.table(["Этап", "Что делается"], BuildPlan.floorTimeline(p, b).map { [$0.0, $0.1] }, widths: [0.3, 0.7], size: 7.5)
+        w.heading("Этапы", level: 2)
+        w.table(["№", "Этап", "Когда"], b.stages.map { ["\($0.number)", $0.title, $0.when] }, widths: [0.06, 0.4, 0.54], size: 7.2)
+
+        // --- Планировка и сантехника ---
+        w.newPage()
+        w.heading("Планировка, мебель и сантехника")
+        w.table(["Помещение", "Площадь", "Мебель и приборы"], b.layout.rooms.map { r in [r.name, "\(fmt(r.area, 1)) м²", b.layout.furniture.filter { $0.room == r.id }.map(\.name).joined(separator: ", ")] }, widths: [0.25, 0.12, 0.63], size: 7.5)
+        for f in [Figure(kind: .furniturePlan, title: "Планировка с мебелью", aspect: 0.7), Figure(kind: .plumbingPlan, title: "Разводка воды и канализации", aspect: 0.75)] {
+            w.figure(f.title, aspect: f.aspect, maxH: 420) { cg, rect in Drawings.render(f.kind, ctx, cg, rect) }
+        }
+        let pt = PlumbingWorks.pointsTable(b.layout)
+        w.heading("Точки воды и канализации", level: 2)
+        w.table(pt.head, pt.rows, widths: [0.06, 0.2, 0.36, 0.14, 0.24], size: 7.2)
+
+        // --- Модульная система ---
+        w.newPage()
+        w.heading("Стандартные материалы: дом без лишних резов")
+        w.text("Все размеры подогнаны под материалы из магазина: шаг стоек, балок и стропил 625 мм (лист 1250 = 2 шага, плита утеплителя 600 входит в просвет 575 в распор), стойка — целая доска 3000 мм (каркас 3150 = 50 + 3000 + 2×50), наружные размеры каркаса кратны 1250 мм, окна и двери — типовые блоки. Там, где рез неизбежен, он один и без отходов: лист ОСП/ГКЛ или плита утеплителя режется пополам.", size: 9)
+        w.heading("Проверка проекта", level: 2)
+        w.table(["Правило", "Выполнено", "Подробности"], b.checks.map { [$0.title, $0.ok ? "да" : "⚠︎ нет", $0.detail] }, widths: [0.34, 0.12, 0.54], size: 7.5)
+        w.heading("Карта материалов", level: 2)
+        w.table(["Материал", "Размер", "Правило модуля", "Резка", "Кол-во"], b.kit.map { [$0.material, $0.size, $0.rule, $0.cut, $0.qty] },
+                widths: [0.18, 0.16, 0.3, 0.2, 0.16], size: 6.8)
+        let w0 = BuildPlan.wallsExt0First(F)
+        var modFigs: [Figure] = [Figure(kind: .wallSection, title: "Разрез наружной стены: брус, утеплитель, отделка снаружи и изнутри, размеры в мм", aspect: 0.95),
+                                 Figure(kind: .wallPlan, title: "Стена в плане: шаг 625, плита 600 в распор, стык ОСП по оси стойки", aspect: 0.4)]
+        if let i = w0 { modFigs += [0, 1, 2].map { Figure(kind: .sheetLayout(i, $0), title: ["Раскладка ОСП снаружи", "Раскладка утеплителя", "Раскладка ГКЛ изнутри"][$0] + " — стена \(F.walls[i].name)", aspect: 0.42) } }
+        for f in modFigs { w.figure(f.title, aspect: f.aspect, maxH: 420) { cg, rect in Drawings.render(f.kind, ctx, cg, rect) } }
+
+        // --- Соединения ---
+        w.newPage()
+        w.heading("Соединения и крепёж")
+        w.table(["Узел", "Чем", "Сколько / шаг", "Инструмент"], Kit.joints.map { [$0.what, $0.how, $0.qty, $0.tool] }, widths: [0.24, 0.34, 0.18, 0.24], size: 7)
+        for f in [Figure(kind: .fasteners, title: "Основные узлы каркаса", aspect: 0.62), Figure(kind: .rigidity, title: "Откуда жёсткость стены: временные укосины, раскосы, ОСП", aspect: 0.42)] {
+            w.figure(f.title, aspect: f.aspect) { cg, rect in Drawings.render(f.kind, ctx, cg, rect) }
+        }
+        w.heading(Fasteners.rule.title, level: 2)
+        w.numbered(Fasteners.rule.steps, size: 8.5)
+        let rg = Guides.walls(p, F)[2]
+        w.heading(rg.title, level: 2)
+        w.numbered(rg.steps)
 
         // --- Этапы ---
         var lastScene: Stage3D? = nil
@@ -213,7 +262,8 @@ enum PDFExport {
         for s in b.stages {
             w.newPage()
             w.heading("Этап \(s.number). \(s.title)")
-            w.text(s.goal, size: 9.5, italic: true, color: .darkGray, after: 6)
+            w.text(s.goal, size: 9.5, italic: true, color: .darkGray, after: 4)
+            if !s.when.isEmpty { w.text("Когда: " + s.when, size: 8.5, color: NSColor(srgbRed: 0.1, green: 0.3, blue: 0.6, alpha: 1), after: 6) }
             if s.scene != lastScene, let img = render3D(p, r, stage: s.scene, size: CGSize(width: 1100, height: 560)) {
                 w.image(img, height: 200)
                 w.text("3D: этап «\(s.scene.title)»", size: 7.5, italic: true, color: .gray, after: 6)
@@ -221,6 +271,23 @@ enum PDFExport {
             }
             w.heading("Порядок работ", level: 2)
             w.numbered(s.steps)
+            if !s.tools.isEmpty {
+                w.heading("Инструмент", level: 2)
+                w.text(s.tools.map { "• " + $0 }.joined(separator: "\n"), size: 8.5)
+            }
+            if let t = s.table {
+                w.heading("Точки подключения", level: 2)
+                w.table(t.head, t.rows, widths: [0.06, 0.2, 0.36, 0.14, 0.24], size: 7.2)
+            }
+            if !s.fasteners.isEmpty {
+                w.heading("Крепёж: что → чем → инструмент", level: 2)
+                w.table(["Что крепим", "Чем (что купить)", "Чем закручивать / забивать"], s.fasteners.map { [$0.what, $0.item, $0.how] }, widths: [0.27, 0.43, 0.3], size: 7.2)
+            }
+            for g in s.guides {
+                w.heading("🔧 " + g.title, level: 3)
+                w.numbered(g.steps, size: 8.5)
+                if !g.tip.isEmpty { w.text("Совет: " + g.tip, size: 8, italic: true, color: .darkGray) }
+            }
             if !s.decisions.isEmpty {
                 w.heading("Принятые решения и обоснование", level: 2)
                 w.table(["Решение", "Принято", "Обоснование", "Норматив"], s.decisions.map { [$0.title, $0.value, $0.why, $0.ref] }, widths: [0.18, 0.25, 0.33, 0.24], size: 7.2)
@@ -259,9 +326,9 @@ enum PDFExport {
         // --- Пиломатериалы ---
         w.newPage()
         w.heading("Ведомость пиломатериалов")
-        w.text("Подсчитано по фактической раскладке всех элементов каркаса с раскроем на хлысты 6 м (+5 % на брак). Хвойные породы, 2 сорт по ГОСТ 8486-86, камерной сушки (влажность ≤ 20 %).", size: 8.5, color: .darkGray)
-        w.table(["Сечение", "Назначение (кол-во элементов)", "Погонаж, м", "Хлыстов 6 м", "Объём, м³"],
-                b.lumber.map { [$0.sec.label, $0.use, fmt($0.totalLength, 0), "\($0.pieces)", fmt($0.volume, 2)] }
+        w.text("Подсчитано по фактической раскладке всех элементов каркаса: стойки 3000 — целыми досками 3 м, короткие элементы — из досок 3 м, остальное — раскрой хлыстов 6 м (+5 % на брак). Хвойные породы, 2 сорт по ГОСТ 8486-86, камерной сушки (влажность ≤ 20 %).", size: 8.5, color: .darkGray)
+        w.table(["Сечение", "Назначение (кол-во элементов)", "Погонаж, м", "Досок, шт", "Объём, м³"],
+                b.lumber.map { [$0.sec.label + "×\(Int($0.stock * 1000))" + ($0.whole ? " целиком" : ""), $0.use, fmt($0.totalLength, 0), "\($0.pieces)", fmt($0.volume, 2)] }
                 + [["Итого", "", fmt(b.lumber.reduce(0) { $0 + $1.totalLength }, 0), "\(b.lumber.reduce(0) { $0 + $1.pieces })", fmt(b.lumber.reduce(0) { $0 + $1.volume }, 2)]],
                 widths: [0.1, 0.5, 0.13, 0.13, 0.14], size: 7.5, bold: [b.lumber.count])
 
