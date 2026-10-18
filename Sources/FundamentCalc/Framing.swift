@@ -171,6 +171,7 @@ struct Framing {
     var studExt = Lumber(50, 150), studInt = Lumber(50, 150), studPart = Lumber(50, 100)
     var stud: (phi: Double, sigma: Double, ok: Bool, N: Double, step: Double, l: Double) = (1, 0, true, 0, 0.6, 2.5)
     var sillSec = Lumber(150, 150), padSec = Lumber(50, 150)
+    var sillType: SillType = .timber          // на плите — всегда лежень 50 мм
     var anchors: [V2] = []
     var sillLines: [(V2, V2)] = []
     var rafter: Timber.BeamCheck?
@@ -310,8 +311,10 @@ enum FrameGen {
         case .piles: F.foundTop = 0.15 + r.piles.hg
         }
         let woodFloor = kind != .slab && p.groundFloor == .wood
-        let sillH: Double = kind == .slab ? 0 : (p.sillType == .timber ? 0.15 : 0.05)
-        F.sillSec = p.sillType == .timber ? Lumber(150, max(150, F.studExt.w)) : Lumber(50, max(150, F.studExt.w))
+        // на плите обвязка тоже обязательна: лежень размечает контуры стен, держит анкеры и поднимает стену над водой на плите
+        F.sillType = kind == .slab ? .board : p.sillType
+        let sillH: Double = F.sillType == .timber ? 0.15 : 0.05
+        F.sillSec = F.sillType == .timber ? Lumber(150, max(150, F.studExt.w)) : Lumber(50, max(150, F.studExt.w))
         F.padSec = F.sillSec
 
         // нагрузки на перекрытия, кПа (СП 20.13330.2016: табл. 7.1, 8.3, п. 8.2.2 — перегородки 0.5 кПа)
@@ -371,17 +374,19 @@ enum FrameGen {
         F.wallTop = F.levels.last! + F.wallHeights.last!
 
         // --- Обвязка по фундаменту и анкеры ---
-        if kind != .slab {
-            for ln in lines {
-                let (a, b) = trimmed(ln.a, ln.b, ext: ln.isExterior, depth: ln.isExterior ? F.sillSec.wm : 0.15, p: p, rings: rings)
+        for ln in lines {
+            let (a, b) = trimmed(ln.a, ln.b, ext: ln.isExterior, depth: ln.isExterior ? F.sillSec.wm : 0.15, p: p, rings: rings)
+            F.sillLines.append((a, b))
+            let sec = ln.isExterior ? F.sillSec : (F.sillType == .timber ? Lumber(150, 150) : Lumber(50, 150))
+            F.members.append(flat(a, b, z0: F.foundTop, t: sec.tm, sec: sec, kind: .sill, stage: .sill))
+        }
+        // на плите все стены стоят на бетоне — лежень и под ненесущими перегородками (ширина = стойке перегородки)
+        if kind == .slab {
+            for pt in p.partitions where !pt.onFoundation && pt.length > 0.3 {
+                let (a, b) = trimmed(pt.a, pt.b, ext: false, depth: F.sillSec.wm, p: p, rings: rings)
                 F.sillLines.append((a, b))
-                let sec = ln.isExterior ? F.sillSec : (p.sillType == .timber ? Lumber(150, 150) : Lumber(50, 150))
+                let sec = Lumber(50, F.studPart.w)
                 F.members.append(flat(a, b, z0: F.foundTop, t: sec.tm, sec: sec, kind: .sill, stage: .sill))
-            }
-        } else {
-            for ln in lines {
-                let (a, b) = trimmed(ln.a, ln.b, ext: ln.isExterior, depth: ln.isExterior ? D : 0.15, p: p, rings: rings)
-                F.sillLines.append((a, b))
             }
         }
         for (a, b) in F.sillLines {

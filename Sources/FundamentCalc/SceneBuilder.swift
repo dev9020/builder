@@ -269,7 +269,7 @@ enum SceneBuilder {
         // гидроизоляция под обвязкой / нижней обвязкой стен
         let tar = mat(rgb(0.12, 0.12, 0.13))
         let wp = SCNNode()
-        for (a, b) in F.sillLines { wp.addChildNode(beam(a, b, width: F.studExt.wm + 0.02, bottom: F.foundTop, top: F.foundTop + 0.004, extend: 0.01, tar)) }
+        for (a, b) in F.sillLines { wp.addChildNode(beam(a, b, width: F.sillSec.wm + 0.02, bottom: F.foundTop, top: F.foundTop + 0.004, extend: 0.01, tar)) }
         root.addChildNode(wp.flattenedClone())
         // настилы перекрытий (ОСП) — полупрозрачные
         let osb = mat(rgb(0.80, 0.68, 0.45), 0.55)
@@ -284,7 +284,7 @@ enum SceneBuilder {
         // анкеры
         if stage == .sill || stage == .floor {
             let steel = mat(rgb(0.6, 0.6, 0.62), metal: true)
-            let top = F.foundTop + (p.selectedFoundation == .slab ? 0.1 : F.sillSec.tm) + 0.03
+            let top = F.foundTop + F.sillSec.tm + (F.sillType == .board ? -0.005 : 0.03)
             let g = SCNNode()
             for a in F.anchors { g.addChildNode(rod(f3(a, F.foundTop - 0.1), f3(a, top), radius: 0.008, steel)) }
             root.addChildNode(g.flattenedClone())

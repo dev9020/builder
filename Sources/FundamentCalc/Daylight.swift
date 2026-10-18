@@ -130,7 +130,7 @@ enum Daylight {
                     if let (r, dist) = cand {
                         added = add(room, r, narrow, dist.isFinite ? "узкое окно 600×1800 в конце прохода (до остекления было \(fmt(dist, 1)) м)" : "узкое окно 600×1800 — своё окно вместо тёмного помещения") || added
                     }
-                case .bedroom, .office, .living, .kitchen, .kitchenLiving:
+                case .bedroom, .master, .office, .living, .kitchen, .kitchenLiving:
                     let area = room.area
                     if glazedArea(room) < area * minRatio {
                         let r = runs.max { $0.len < $1.len }!
@@ -138,7 +138,7 @@ enum Daylight {
                         if r.len >= size.w {
                             added = add(room, r, size, "окно \(size.w > 1 ? "1200×1400" : "600×1800"): остекление было \(fmt(glazedArea(room), 1)) м² < 1/8 пола (\(fmt(area / 8, 1)) м²)") || added
                         }
-                    } else if [.bedroom, .office, .living].contains(room.type), area >= 10,
+                    } else if [.bedroom, .master, .office, .living].contains(room.type), area >= 10,
                               Set(glz.compactMap { o -> Int? in if case .edge(let i) = o.o.host { return i }; return nil }).count == 1 {
                         // угловая комната со светом с одной стороны: на глухую наружную стену ≥ 2 м — узкое окно
                         let litEdges = Set(glz.compactMap { o -> Int? in if case .edge(let i) = o.o.host { return i }; return nil })
@@ -165,7 +165,7 @@ enum Daylight {
         var out: [String] = []
         for r in rooms {
             switch r.type {
-            case .bedroom, .office, .living, .kitchen, .kitchenLiving:
+            case .bedroom, .master, .office, .living, .kitchen, .kitchenLiving:
                 if glazedArea(r) < r.area * minRatio { out.append("\(r.name) \(fmt(r.area, 1)) м²: окна \(fmt(glazedArea(r), 1)) м² < 1/8 пола") }
             case .corridor, .hall:
                 if glazing(r).isEmpty { out.append("\(r.name) \(fmt(r.area, 1)) м²: без естественного света") }

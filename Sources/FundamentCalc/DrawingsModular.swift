@@ -40,9 +40,19 @@ extension Drawings {
         Sk.text("Разрез между стойками (по толщине — масштаб ×3), мм. Снаружи внутрь: " + chain.map { "\($0.1) \(fmt($0.0 * 1000, $0.0 * 1000 == ($0.0 * 1000).rounded() ? 0 : 1))" }.joined(separator: " · ") + " = \(fmt(L.total * 1000, 1))",
                 CGPoint(x: rect.minX + 8, y: rect.minY + 9), size: 7, color: .darkGray, maxW: rect.width - 16)
         // перекрытие / основание
-        let slab = c.p.selectedFoundation == .slab && c.p.groundFloor != .wood
-        s.box(X(xO) - 0.05, -0.3, X(xK) + 0.12, 0, slab ? .concrete : .board)
-        s.label(slab ? "плита" : "платформа пола: ОСП 22 по балкам", V2(X(xS) + 0.05, -0.15), size: 6.5, bg: true)
+        let slab = c.p.selectedFoundation == .slab
+        if slab {
+            // стена стоит на лежне, лежень — на гидроизоляции по плите; рядом — слои пола по плите
+            let sh = F.sillSec.tm
+            s.box(X(xO) - 0.05, -0.3, X(xK) + 0.12, -sh, .concrete)
+            s.box(X(xS), -sh + 0.004, X(xI), 0, .timberCut)
+            s.box(X(xI), -sh, X(xK) + 0.12, 0, .insulation)
+            s.line(V2(X(xO) - 0.05, -sh + 0.002), V2(X(xI) + 0.01, -sh + 0.002), 2, .black)
+            s.label("плита", V2(X(xS) + 0.05, -0.2), size: 6.5, bg: true)
+        } else {
+            s.box(X(xO) - 0.05, -0.3, X(xK) + 0.12, 0, .board)
+            s.label("платформа пола: ОСП 22 по балкам", V2(X(xS) + 0.05, -0.15), size: 6.5, bg: true)
+        }
         // перекрытие сверху
         s.box(X(xS), H, X(xK) + 0.12, H + 0.2, .board)
         s.box(X(xI), H - 0.025, X(xK) + 0.12, H, fill: Sk.fillFor(.wood))
@@ -177,6 +187,7 @@ extension Drawings {
         }
         s.leader(V2((X(xB) + X(xK)) / 2, 1.2), V2(rx, H * 0.43), finTxt, size: 6.5)
         s.leader(V2((X(xS) + X(xI)) / 2, Module.plate / 2), V2(rx, -0.03), "Нижняя обвязка \(F.studExt.label)", size: 6.5)
+        if slab { s.leader(V2((X(xS) + X(xI)) / 2, -F.sillSec.tm / 2), V2(rx, -0.13), "Лежень \(F.sillSec.label) на гидроизоляции, анкер М12", size: 6.5) }
         s.label("снаружи", V2(X(xF), -0.38), size: 7, color: .gray)
         s.label("внутри", V2(X(xK) - 0.05, -0.38), size: 7, color: .gray)
     }
@@ -454,9 +465,11 @@ extension Drawings {
         let slab = c.p.selectedFoundation == .slab
         let F = c.b.frame
         let stem = slab ? 0.5 : (c.p.selectedFoundation == .strip ? (c.r.strip.ext?.stemW ?? 0.4) : c.r.piles.bg)
-        let bw = slab ? F.studExt.wm : F.sillSec.wm
-        let bh = slab ? 0.05 : F.sillSec.tm
-        let titles = ["1. Очистить, загрунтовать праймером", "2. Наплавить 2 слоя полосой на 50 шире бруса", "3. Лента ППЭ 8 мм, анкеры М12", "4. Брус, шайба DIN 9021, гайка"]
+        let bw = F.sillSec.wm
+        let bh = F.sillSec.tm
+        let board = F.sillType == .board
+        let titles = ["1. Очистить, загрунтовать праймером", "2. Наплавить 2 слоя полосой на 50 шире \(board ? "лежня" : "бруса")", "3. Лента ППЭ 8 мм, анкеры М12",
+                      board ? "4. Лежень, гайка + шайба DIN 9021 в выборке" : "4. Брус, шайба DIN 9021, гайка"]
         let pw = rect.width / 4
         for i in 0..<4 {
             let r = CGRect(x: rect.minX + CGFloat(i) * pw, y: rect.minY, width: pw, height: rect.height)

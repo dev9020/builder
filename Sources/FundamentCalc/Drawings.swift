@@ -507,7 +507,7 @@ enum Drawings {
         let slab = c.p.selectedFoundation == .slab
         let D = F.studExt.wm
         let stemW = slab ? 0.6 : (c.p.selectedFoundation == .strip ? (c.r.strip.ext?.stemW ?? 0.4) : c.r.piles.bg)
-        let sill = slab ? 0.0 : F.sillSec.tm
+        let sill = F.sillSec.tm
         let jh = F.floors.first?.check.sec.wm ?? 0.2
         let wood = !slab && c.p.groundFloor == .wood
         let x0 = -stemW / 2               // наружная грань фундамента (снаружи — слева)
@@ -520,15 +520,15 @@ enum Drawings {
         s.box(x0 - 0.02, 0, x0 + D + 0.05, 0.008, fill: .black, stroke: .black)
         // обвязка
         var z = 0.008
-        if !slab {
-            s.box(x0, z + 0.004, x0 + F.sillSec.wm, z + sill, .timberCut)
-            z += sill
-        }
-        // анкер
-        let ax = x0 + (slab ? D : F.sillSec.wm) / 2
-        s.line(V2(ax, -0.15), V2(ax, z + 0.03), 2.2, NSColor(white: 0.35, alpha: 1))
-        s.box(ax - 0.022, z, ax + 0.022, z + 0.006, fill: .darkGray)
-        s.box(ax - 0.012, z + 0.006, ax + 0.012, z + 0.02, fill: .black)
+        s.box(x0, z + 0.004, x0 + F.sillSec.wm, z + sill, .timberCut)
+        z += sill
+        // анкер; на лежне 50 мм гайка утоплена в выборку — сверху ложится нижняя обвязка стены или балки
+        let ax = x0 + F.sillSec.wm / 2
+        let nz = F.sillType == .board ? z - 0.02 : z
+        if F.sillType == .board { s.box(ax - 0.02, nz, ax + 0.02, z, fill: .white) }
+        s.line(V2(ax, -0.15), V2(ax, nz + 0.02), 2.2, NSColor(white: 0.35, alpha: 1))
+        s.box(ax - 0.018, nz, ax + 0.018, nz + 0.006, fill: .darkGray)
+        s.box(ax - 0.012, nz + 0.006, ax + 0.012, nz + 0.02, fill: .black)
         s.dim(V2(ax + 0.02, -0.15), V2(ax + 0.02, 0), off: -0.05, "150")
         var floorTop = z
         if wood {
@@ -552,8 +552,8 @@ enum Drawings {
             s.leader(V2(x0 + 0.3, z + jh / 2), V2(lx, z + jh * 0.55), "Балка пола \(F.floors.first?.check.title ?? "") шаг \(mm(F.floors.first?.check.step ?? 0.6)), опора ≥ 100 мм")
             s.leader(V2(x0 + 0.025, z + jh * 0.3), V2(lx, z + jh * 0.2), "Обвязочная доска \(F.floors.first?.check.sec.label ?? "") по контуру")
         }
-        if !slab { s.leader(V2(x0 + F.sillSec.wm * 0.75, 0.008 + sill / 2), V2(lx, sill * 0.4), "\(c.p.sillType == .timber ? "Обвязочный брус" : "Лежень") \(F.sillSec.label), антисептированный") }
-        s.leader(V2(ax, z + 0.012), V2(lx, sill + 0.015 - (wood ? 0 : 0.0) - 0.04), "Гайка М12 + шайба увелич. DIN 9021")
+        s.leader(V2(x0 + F.sillSec.wm * 0.75, 0.008 + sill / 2), V2(lx, F.sillType == .board ? 0.0 : sill * 0.4), "\(F.sillType == .timber ? "Обвязочный брус" : "Лежень") \(F.sillSec.label), антисептированный")
+        s.leader(V2(ax, nz + 0.012), V2(lx, F.sillType == .board ? 0.08 : sill - 0.025), F.sillType == .board ? "Гайка М12 + шайба DIN 9021 в выборке Ø40×20" : "Гайка М12 + шайба увелич. DIN 9021")
         s.leader(V2(x0 + D + 0.03, 0.004), V2(lx, -0.06), "Гидроизоляция ТПП/ХПП 2 слоя + лента ППЭ 8 мм")
         s.leader(V2(ax, -0.1), V2(lx, -0.2), "Анкер: шпилька М12 кл. 5.8, хим. анкер, заделка 150, шаг ≤ 2000, ≤ 300 от концов")
         s.leader(V2(x0 + 0.1, -0.35), V2(lx, -0.36), slab ? "Плита фундамента" : "Лента фундамента (верх в горизонт ±10 мм)")

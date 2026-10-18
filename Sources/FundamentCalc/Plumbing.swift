@@ -19,7 +19,7 @@ enum SepticType: String, CaseIterable, Identifiable {
     var size: V2 { self == .tank ? V2(3.2, 1.6) : self == .bio ? V2(1.2, 1.8) : V2(2.4, 1.2) }
 }
 
-enum FurnKind { case bed, nightstand, wardrobe, sofa, table, desk, shelf, kitchen, fridge, toilet, sink, shower, bathtub, washer, boiler, heater, tank, collector, bench, filter }
+enum FurnKind { case bed, nightstand, wardrobe, sofa, table, desk, shelf, kitchen, fridge, toilet, sink, shower, bathtub, washer, boiler, heater, tank, collector, bench, filter, stove }
 
 struct Furniture: Identifiable {
     let id = UUID()
@@ -85,7 +85,7 @@ struct HouseLayout {
         let hasBoiler = L.rooms.contains { $0.type == .boiler }
         var washerPlaced = false, heaterPlaced = false
         let order = L.rooms.indices.sorted { a, b in
-            let pr: [RoomType] = [.boiler, .bath, .wc, .kitchenLiving, .kitchen]
+            let pr: [RoomType] = [.boiler, .bath, .showerRoom, .wc, .kitchenLiving, .kitchen]
             return (pr.firstIndex(of: L.rooms[a].type) ?? 9) < (pr.firstIndex(of: L.rooms[b].type) ?? 9)
         }
         for i in order {
@@ -378,15 +378,36 @@ struct Placer {
         let shortSide = min(room.w, room.h), longSide = max(room.w, room.h)
         switch room.type {
         case .bath:
-            if longSide >= 2.3 && shortSide >= 1.6 { place("Ванна 1700×750", .bathtub, 1.7, 0.75, sides: sides(longFirst: false), tall: false, corner: true) }
-            else { place("Душ 900×900", .shower, 0.9, 0.9, sides: all, tall: false, corner: true) }
-            place("Унитаз", .toilet, 0.6, 0.7, sides: all, tall: false, keepFront: 0.5)
-            place("Раковина 600", .sink, 0.6, 0.48, sides: all, tall: false, keepFront: 0.6)
+            // ванна — если после неё помещаются унитаз и раковина; иначе душ
+            let saved = (items, busy)
+            var tub = false
+            if longSide >= 2.3 && shortSide >= 1.6 { tub = place("Ванна 1700×750", .bathtub, 1.7, 0.75, sides: sides(longFirst: false), tall: false, corner: true) != nil }
+            if tub && (place("Унитаз", .toilet, 0.6, 0.7, sides: all, tall: false, keepFront: 0.5) == nil || place("Раковина 600", .sink, 0.6, 0.48, sides: all, tall: false, keepFront: 0.6) == nil) {
+                (items, busy) = saved; tub = false
+            }
+            if !tub {
+                place("Душ 900×900", .shower, 0.9, 0.9, sides: all, tall: false, corner: true)
+                place("Унитаз", .toilet, 0.6, 0.7, sides: all, tall: false, keepFront: 0.5)
+                place("Раковина 600", .sink, 0.6, 0.48, sides: all, tall: false, keepFront: 0.6) == nil ? place("Раковина 450", .sink, 0.45, 0.32, sides: all, tall: false, keepFront: 0.5) : nil
+            }
             if !washerPlaced && !hasBoiler, place("Стиральная машина", .washer, 0.6, 0.6, sides: all, tall: false, keepFront: 0.5) != nil { washerPlaced = true }
             if !hasBoiler && !heaterPlaced {
                 if place("Коллекторный шкаф ХВ/ГВ", .collector, 0.6, 0.15, sides: all, tall: true) != nil {}
                 if p.floorHeating != .water, place("Водонагреватель 80 л", .heater, 0.5, 0.5, sides: all, tall: true) != nil { heaterPlaced = true }
             }
+        case .showerRoom:
+            place("Душ 900×900", .shower, 0.9, 0.9, sides: all, tall: false, corner: true)
+            place("Унитаз", .toilet, 0.6, 0.7, sides: all, tall: false, keepFront: 0.5)
+            place("Раковина 500", .sink, 0.5, 0.4, sides: all, tall: false, keepFront: 0.6)
+        case .sauna:
+            // каменка — у стены со входом не ставится: сначала короткие стены; полок — вдоль длинной
+            place("Электрокаменка 6–9 кВт + ограждение", .stove, 0.6, 0.55, sides: sides(longFirst: false), tall: true, corner: true)
+            // полок — сколько поместится рядом с каменкой (лежать — от 1.8 м, сидеть — от 1.2 м)
+            for len in [2.0, 1.8, 1.5, 1.2] where place("Полок \(Int(len * 1000)) в 2 яруса", .bench, len, 0.6, sides: sides(longFirst: true), tall: false, corner: true) != nil { break }
+        case .wardrobe:
+            // штанга с полками — по длинной стене, напротив — полки и обувь, проход ≥ 0.4 м
+            for len in [2.4, 1.8, 1.4, 1.0] where place("Гардеробная система \(Int(len * 1000)) (штанга + полки)", .wardrobe, len, 0.6, sides: sides(longFirst: true), tall: true, corner: true, keepFront: 0.4) != nil { break }
+            for len in [2.0, 1.4, 1.0] where place("Полки и обувь \(Int(len * 1000))", .shelf, len, 0.35, sides: sides(longFirst: true), tall: true, corner: true, keepFront: 0.4) != nil { break }
         case .wc:
             place("Унитаз", .toilet, 0.6, 0.7, sides: all, tall: false, keepFront: 0.5)
             place("Раковина 450", .sink, 0.45, 0.32, sides: all, tall: false, keepFront: 0.5)
@@ -408,12 +429,15 @@ struct Placer {
         case .living:
             place("Диван 2200", .sofa, 2.2, 0.95, sides: all, tall: false, keepFront: 0.5)
             placeFree("Журнальный стол", .table, 1.0, 0.6, clear: 0.5)
-        case .bedroom:
+        case .bedroom, .master:
             let bw = shortSide >= 3.0 ? 1.6 : shortSide >= 2.5 ? 1.4 : 0.9
             if place("Кровать \(Int(bw * 1000))×2000 + тумбы", .bed, bw + 0.9, 2.0, sides: all, tall: true, keepFront: 0.6) == nil {
                 place("Кровать \(Int(bw * 1000))×2000", .bed, bw, 2.0, sides: all, tall: false, keepFront: 0.5)
             }
-            place("Шкаф 1600", .wardrobe, 1.6, 0.6, sides: all, tall: true, corner: true, keepFront: 0.6) == nil ? place("Шкаф 1000", .wardrobe, 1.0, 0.6, sides: all, tall: true, corner: true, keepFront: 0.6) : nil
+            // у мастер-спальни своя гардеробная — шкаф не нужен
+            if room.type == .bedroom {
+                place("Шкаф 1600", .wardrobe, 1.6, 0.6, sides: all, tall: true, corner: true, keepFront: 0.6) == nil ? place("Шкаф 1000", .wardrobe, 1.0, 0.6, sides: all, tall: true, corner: true, keepFront: 0.6) : nil
+            }
         case .office:
             place("Стол 1400", .desk, 1.4, 0.7, sides: (0..<4).sorted { winBySide[$0].count > winBySide[$1].count }, tall: false, keepFront: 0.7)
             place("Стеллаж", .shelf, 1.0, 0.4, sides: all, tall: true)

@@ -2,7 +2,7 @@ import Foundation
 
 /// Назначение помещения
 enum RoomType: String, CaseIterable, Identifiable {
-    case kitchenLiving, living, kitchen, bedroom, office, bath, wc, hall, corridor, boiler, storage
+    case kitchenLiving, living, kitchen, bedroom, master, office, bath, wc, hall, corridor, boiler, storage, wardrobe, sauna, showerRoom
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -17,10 +17,22 @@ enum RoomType: String, CaseIterable, Identifiable {
         case .corridor: return "Коридор / холл"
         case .boiler: return "Котельная / техпомещение"
         case .storage: return "Кладовая"
+        case .master: return "Мастер-спальня"
+        case .wardrobe: return "Гардеробная"
+        case .sauna: return "Сауна (парная)"
+        case .showerRoom: return "Душевая с с/у"
         }
     }
-    var short: String { self == .boiler ? "Котельная" : self == .corridor ? "Холл" : title }
-    var wet: Bool { [.bath, .wc, .kitchen, .kitchenLiving, .boiler].contains(self) }
+    var short: String {
+        switch self {
+        case .boiler: return "Котельная"
+        case .corridor: return "Холл"
+        case .sauna: return "Сауна"
+        case .showerRoom: return "Душевая"
+        default: return title
+        }
+    }
+    var wet: Bool { [.bath, .wc, .kitchen, .kitchenLiving, .boiler, .sauna, .showerRoom].contains(self) }
 }
 
 /// Пометка назначения комнаты: точка внутри комнаты → тип (задаётся вручную или в проекте)

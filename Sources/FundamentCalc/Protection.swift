@@ -91,7 +91,7 @@ struct WindCheck {
         c.shearX = gf * c.w * 1.3 * aX
         c.shearY = gf * c.w * 1.3 * aY
         // анкер — стальной нагель Ø1.2 см в обвязке толщиной a (СП 64.13330, табл. 20): T = 2.5d² + 0.01a² ≤ 4d²
-        let d = 1.2, aCm = (p.selectedFoundation == .slab ? F.studExt.tm : F.sillSec.tm) * 100
+        let d = 1.2, aCm = F.sillSec.tm * 100
         c.anchorT = min(2.5 * d * d + 0.01 * aCm * aCm, 4 * d * d)
         for an in F.anchors {
             guard let ln = F.sillLines.min(by: { Geo.distToSegment(an, $0.0, $0.1) < Geo.distToSegment(an, $1.0, $1.1) }) else { continue }
@@ -211,19 +211,21 @@ struct VentPlan {
             let A = room.area
             var s = 0.0, e = 0.0
             switch room.type {
-            case .bedroom: s = max(3 * A, 60)
+            case .bedroom, .master: s = max(3 * A, 60)
             case .living, .office: s = max(3 * A, 30)
             case .kitchenLiving: s = max(3 * A, 60); e = 90
             case .kitchen: e = 60
             case .bath: e = 50
             case .wc: e = 25
             case .boiler: e = max(A * h, 25); s = p.heatSource.needsFlue ? max(3 * A * h, 60) : 0
-            case .hall, .corridor, .storage: break
+            case .showerRoom: e = 50
+            case .sauna: e = 60; s = 60                       // приток — под каменкой, вытяжка — с противоположной стороны (СП 60 не нормирует, практика ≥ 6 крат)
+            case .hall, .corridor, .storage, .wardrobe: break
             }
-            if [.bath, .wc, .kitchen, .boiler].contains(room.type) { v.undercut.append(room.name) }
+            if [.bath, .wc, .kitchen, .boiler, .showerRoom].contains(room.type) { v.undercut.append(room.name) }
             let dev = e > 0 ? "вытяжной канал" + (s > 0 ? " + приточный клапан ×\(Int((s / 30).rounded(.up)))" : "") : s > 0 ? "приточный клапан ×\(Int((s / 30).rounded(.up)))" : "переток из жилых"
             v.rows.append(VentRow(room: room.name, area: A, supply: s, exhaust: e, device: dev))
-            if s > 0 && room.type != .boiler { v.valves += Int((s / 30).rounded(.up)) }
+            if s > 0 && room.type != .boiler && room.type != .sauna { v.valves += Int((s / 30).rounded(.up)) }
             if e > 0 { v.ducts.append(duct(room.name, e)) }
             v.supply += s; v.exhaust += e
         }
@@ -420,14 +422,15 @@ enum Protection {
 
     static func wetZones(_ p: Project, _ b: BuildPlan) -> BuildStage? {
         let L = b.layout
-        let wet = L.rooms.filter { $0.type == .bath || $0.type == .wc }
+        let wet = L.rooms.filter { [.bath, .wc, .showerRoom].contains($0.type) }
         guard !wet.isEmpty else { return nil }
         let A = wet.reduce(0) { $0 + $1.area }
         let P = wet.reduce(0) { $0 + 2 * ($1.w + $1.h) }
         let showers = L.furniture.filter { $0.kind == .shower || $0.kind == .bathtub }.count
         let outlets = L.points.filter { r in wet.contains { $0.name == r.room } }.count
         let joists = p.floorBase == .joists
-        var s = BuildStage(title: "Мокрые зоны: гидроизоляция санузлов", icon: "drop.circle", scene: .finish)
+        let hasSauna = L.rooms.contains { $0.type == .sauna }
+        var s = BuildStage(title: hasSauna ? "Мокрые зоны: санузлы, душевая и сауна" : "Мокрые зоны: гидроизоляция санузлов", icon: "drop.circle", scene: .finish)
         s.goal = "Не пустить воду из душа и от протечек в деревянное перекрытие и каркас стен."
         s.when = "после основания пола и обшивки стен влагостойкими листами, до плитки и сантехприборов"
         s.steps = [
@@ -455,6 +458,25 @@ enum Protection {
         ]
         if joists { s.items.insert(WorkItem(name: "ГВЛВ 10 мм 1200×2500 (основание под плитку, 2 слоя)", qty: (A * 2 / 3 * 1.1).rounded(.up), unit: "лист", digits: 0, price: 650), at: 0) }
         s.items.append(WorkItem(name: "ЦСП/ГВЛВ для стен в зоне душа и ванны", qty: (Double(max(showers, 1)) * 4.4 / 3 * 1.1).rounded(.up), unit: "лист", digits: 0, price: 1100))
+        // сауна в каркасном доме: свой пирог стен, электрокаменка, вентиляция
+        if let sauna = L.rooms.first(where: { $0.type == .sauna }) {
+            let h = 2.2, wallA = 2 * (sauna.w + sauna.h) * h, ceil = sauna.area
+            s.steps += [
+                "Сауна \(fmt(sauna.area, 1)) м²: потолок опускают до 2.1–2.2 м (меньше объём — быстрее прогрев). Пирог стен изнутри: утеплитель каркаса → фольгированная пароизоляция (фольгой в парную, стыки — алюминиевым скотчем, без щелей) → рейка 20–25 мм (вентзазор) → вагонка липа/осина 15 мм вертикально. Обычная плёнка и ГКЛ в парной не применяются.",
+                "Электрокаменка \(sauna.area <= 4.5 ? "6" : "9") кВт (≈ 1 кВт на 1 м³) — отдельная линия от щита 380 В через УЗО, кабель в термостойкой изоляции; отступы от каменки до вагонки — по паспорту печи (обычно 100–200 мм) с защитным экраном; пульт управления — снаружи парной.",
+                "Вентиляция парной: приток Ø100 у пола под каменкой, вытяжка Ø100 на противоположной стене у пола с отводом в канал выше кровли (схема «басту»), шибер на вытяжке.",
+                "Пол парной — плитка по гидроизоляции душевой с уклоном к трапу в душевой; съёмные деревянные решётки. Дверь — стеклянная закалённая 700×1900 с зазором 30–50 мм снизу, открывается наружу.",
+                "Полки — липа/абаш без сучков, крепёж только скрытый (снизу, нержавеющие саморезы), шляпки не касаются тела. Светильник — влагостойкий термостойкий (IP54, до 125 °C) у пола или за экраном.",
+            ]
+            s.items += [
+                WorkItem(name: "Пароизоляция фольгированная для парной + алюминиевый скотч", qty: ((wallA + ceil) * 1.15).rounded(.up), unit: "м²", digits: 0, price: 120),
+                WorkItem(name: "Вагонка липа 15×96 экстра (стены и потолок парной)", qty: ((wallA + ceil) * 1.1).rounded(.up), unit: "м²", digits: 0, price: 2200),
+                WorkItem(name: "Электрокаменка \(sauna.area <= 4.5 ? "6" : "9") кВт с пультом", qty: 1, unit: "шт", digits: 0, price: sauna.area <= 4.5 ? 38000 : 52000),
+                WorkItem(name: "Дверь для сауны стеклянная 700×1900", qty: 1, unit: "шт", digits: 0, price: 16000),
+                WorkItem(name: "Полки: доска липа/абаш 28×90 + брус 50×50 каркас", qty: 1, unit: "компл", digits: 0, price: 24000),
+                WorkItem(name: "Термостойкий светильник и кабель РКГМ для парной", qty: 1, unit: "компл", digits: 0, price: 6500),
+            ]
+        }
         return s
     }
 
@@ -497,7 +519,7 @@ enum Protection {
 
     static func handover(_ p: Project, _ b: BuildPlan) -> BuildStage {
         let L = b.layout
-        let living = L.rooms.filter { [.bedroom, .living, .office, .kitchenLiving, .kitchen, .corridor, .hall].contains($0.type) }.count
+        let living = L.rooms.filter { [.bedroom, .master, .living, .office, .kitchenLiving, .kitchen, .corridor, .hall].contains($0.type) }.count
         var s = BuildStage(title: "Сдача дома и правила эксплуатации", icon: "checkmark.seal", scene: .finish)
         s.goal = "Проверить дом перед заселением и знать, что и когда обслуживать, чтобы каркас прослужил 50+ лет."
         s.when = "после всех работ; первый год — пристальное наблюдение (усадка, влажность, первая зима)"

@@ -9,10 +9,11 @@ extension Drawings {
 
     static func roomFill(_ t: RoomType) -> NSColor {
         switch t {
-        case .bath, .wc: return NSColor(srgbRed: 0.85, green: 0.93, blue: 0.98, alpha: 1)
+        case .bath, .wc, .showerRoom: return NSColor(srgbRed: 0.85, green: 0.93, blue: 0.98, alpha: 1)
         case .kitchenLiving, .kitchen, .living: return NSColor(srgbRed: 0.99, green: 0.96, blue: 0.88, alpha: 1)
-        case .bedroom, .office: return NSColor(srgbRed: 0.94, green: 0.97, blue: 0.92, alpha: 1)
-        case .boiler, .storage: return NSColor(srgbRed: 0.93, green: 0.92, blue: 0.95, alpha: 1)
+        case .bedroom, .master, .office: return NSColor(srgbRed: 0.94, green: 0.97, blue: 0.92, alpha: 1)
+        case .boiler, .storage, .wardrobe: return NSColor(srgbRed: 0.93, green: 0.92, blue: 0.95, alpha: 1)
+        case .sauna: return NSColor(srgbRed: 0.97, green: 0.9, blue: 0.82, alpha: 1)
         default: return NSColor(white: 0.97, alpha: 1)
         }
     }
@@ -107,7 +108,7 @@ extension Drawings {
             case .wardrobe, .shelf: col = NSColor(srgbRed: 0.9, green: 0.84, blue: 0.74, alpha: 1)
             case .sofa: col = NSColor(srgbRed: 0.8, green: 0.86, blue: 0.93, alpha: 1)
             case .table, .desk, .bench: col = NSColor(srgbRed: 0.95, green: 0.9, blue: 0.8, alpha: 1)
-            case .boiler, .heater, .tank, .collector, .filter, .washer, .fridge: col = NSColor(white: 0.88, alpha: 1)
+            case .boiler, .heater, .tank, .collector, .filter, .washer, .fridge, .stove: col = NSColor(white: 0.88, alpha: 1)
             default: col = .white
             }
             if [.heater, .tank].contains(f.kind) {
@@ -123,7 +124,7 @@ extension Drawings {
         let s = Sk(cg, rect, lo: lo - V2(0.5, 0.6), hi: hi + V2(0.5, 0.5), pad: 10)
         planBase(c, s, fills: true, labels: false)
         for f in c.b.layout.furniture { drawFurniture(f, s) }
-        for f in c.b.layout.furniture where [.bed, .wardrobe, .sofa, .table, .kitchen, .fridge, .bathtub, .shower, .desk, .washer].contains(f.kind) {
+        for f in c.b.layout.furniture where [.bed, .wardrobe, .sofa, .table, .kitchen, .fridge, .bathtub, .shower, .desk, .washer, .stove].contains(f.kind) {
             let size = min(f.hi.x - f.lo.x, f.hi.y - f.lo.y)
             if size > 0.35 { s.label(f.name.components(separatedBy: " + ").first ?? f.name, (f.lo + f.hi) / 2, size: 5.5, ax: 0.5, color: NSColor(white: 0.25, alpha: 1)) }
         }

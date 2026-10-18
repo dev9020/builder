@@ -312,6 +312,65 @@ extension HousePreset {
             b.room(.storage, 5.7, 5.25)
         },
 
+        HousePreset(id: "lfam", name: "Г-образный семейный с сауной",
+                    summary: "Каркас 200 мм, имитация бруса, кровля 25° с ендовой. Мастер-спальня с гардеробной и своей ванной с туалетом, 2 детские по 14 м², кухня-гостиная с порталом во двор и проходом к спальням, прихожая с гардеробной, техпомещение (котёл, щит), сауна с душевой и туалетом — она же гостевой санузел.",
+                    shape: .lShape, foundation: .slab) { p in
+            let b = PresetBuilder(p: p)
+            b.setup(.lShape, L: 13.75, W: 13.75, a: 8.75, b: 6.25, wall: .frame200, roof: .gable, covering: .compositeTile, angle: 25, overhang: 0.4, foundation: .slab)
+            // хозблок вдоль западной стены: техпомещение → душевая → сауна
+            b.wall(2.5, 0, 2.5, 7.5)
+            b.wall(0, 2.5, 2.5, 2.5)
+            b.wall(0, 5, 2.5, 5)
+            b.wall(0, 7.5, 2.5, 7.5)
+            // прихожая и её гардеробная
+            b.wall(4.75, 0, 4.75, 2.5)
+            b.wall(4.75, 2.5, 6.25, 2.5)
+            b.wall(6.25, 0, 6.25, 3.75)
+            // ночная зона: проход из гостиной вдоль несущей стены, детские по обе стороны
+            b.wall(2.5, 3.75, 10, 3.75, .frame150, bearing: true)
+            b.wall(6.25, 5, 10, 5)
+            b.wall(6.25, 5, 6.25, 8.75)
+            // мастер-блок: спальня, гардеробная, ванная
+            b.wall(10, 0, 10, 8.75, .frame150, bearing: true)
+            b.wall(10, 3.5, 13.75, 3.5)
+            b.wall(11.75, 0, 11.75, 3.5)
+            // фасад
+            b.techWindow(1.25, 0)
+            b.open(.glassDoor, 3.75, 0)
+            b.open(.window, 8.1, 0, w: 1.5)
+            b.bathWindow(12.75, 0)
+            b.bathWindow(0, 3.75)
+            b.open(.window, 0, 10.6, w: 1.5)
+            b.open(.panoramic, 3.1, 13.75, w: 3.0)
+            b.open(.window, 13.75, 6.1, w: 1.5)
+            // двор
+            b.open(.glassDoor, 6.25, 11.25, w: 2.4)
+            b.open(.window, 8.1, 8.75, w: 1.5)
+            b.open(.panoramic, 11.9, 8.75, w: 1.8)
+            // двери
+            b.open(.door, 2.5, 1.25)
+            b.open(.door, 5.5, 2.5)
+            b.open(.glassDoor, 3.75, 3.75)
+            b.open(.door, 2.5, 4.4)
+            b.open(.door, 1.25, 5, w: 0.7)
+            b.open(.door, 7.0, 3.75)
+            b.open(.door, 7.0, 5)
+            b.open(.door, 10, 4.4)
+            b.open(.door, 10.9, 3.5)
+            b.open(.door, 12.75, 3.5)
+            b.room(.boiler, 1.25, 1.25)
+            b.room(.showerRoom, 1.25, 3.75)
+            b.room(.sauna, 1.25, 6.25)
+            b.room(.hall, 3.5, 2.0)
+            b.room(.wardrobe, 5.5, 1.25)
+            b.room(.kitchenLiving, 3.1, 10.6)
+            b.room(.bedroom, 8.1, 1.9)
+            b.room(.bedroom, 8.1, 6.9)
+            b.room(.master, 11.9, 6.1)
+            b.room(.wardrobe, 10.9, 1.75)
+            b.room(.bath, 12.75, 1.75)
+        },
+
         // ───────── П-образные (плита, скатная кровля) ─────────
         HousePreset(id: "u129", name: "П-образный с вальмовой кровлей",
                     summary: "Каркас 200 мм, сайдинг, дом вокруг патио: кухня-гостиная в левом крыле с порталом во двор, кабинет, 2 спальни в правом крыле за галереей с окнами в пол.",
@@ -322,6 +381,71 @@ extension HousePreset {
                     summary: "Каркас 200 мм с имитацией бруса, патио во двор: кухня-гостиная 41 м² с порталом 3 м, холл с выходом во двор, кабинет, галерея и 2 спальни, санузел, кладовая, гостевой с/у. Кровля 25°.",
                     shape: .uShape, foundation: .slab) { p in
             uLayout(p, L: 17, W: 11.5, d: 5, t: 4.8, wall: .frame200, roof: .gable, covering: .compositeTile, angle: 25, facade: .imitationTimber)
+        },
+
+        HousePreset(id: "ufam", name: "П-образный семейный с сауной",
+                    summary: "Каркас 200 мм, фиброцементный фасад, вальмовая кровля, дом вокруг патио. Ночное крыло за галереей с окнами в пол: мастер-спальня с гардеробной и своей ванной с туалетом, 2 детские. Дневное крыло — кухня-гостиная с порталом во двор. По фронту — прихожая с гардеробной, техпомещение, сауна с душевой и туалетом, галерея с окнами в пол на патио.",
+                    shape: .uShape, foundation: .slab) { p in
+            let b = PresetBuilder(p: p)
+            b.setup(.uShape, L: 17.5, W: 13.75, a: 5, b: 5, wall: .frame200, roof: .hip, covering: .seam, overhang: 0.5, foundation: .slab, facade: .fiberCement)
+            // фронт: детская 1 | сауна, душевая | гардеробная, прихожая | техпомещение; за ними — галерея вдоль патио
+            b.wall(0, 3.75, 12.5, 3.75)
+            b.wall(5, 0, 5, 3.75)
+            b.wall(8, 0, 8, 3.75)
+            b.wall(5, 1.75, 8, 1.75)
+            b.wall(10, 0, 10, 2)
+            b.wall(8, 2, 10, 2)
+            b.wall(12.5, 0, 12.5, 5)
+            b.wall(12.5, 2.5, 15, 2.5)
+            b.wall(15, 0, 15, 2.5)
+            // ночное крыло: детская 2 и мастер-блок, галерея вдоль патио ведёт в мастер-спальню
+            b.wall(3.75, 3.75, 3.75, 10)
+            b.wall(0, 7.5, 3.75, 7.5)
+            b.wall(2.25, 7.5, 2.25, 10)
+            b.wall(0, 10, 5, 10)
+            // фасад
+            b.open(.window, 2.5, 0, w: 1.5)
+            b.open(.glassDoor, 11.25, 0)
+            b.techWindow(13.75, 0)
+            b.open(.window, 16.25, 0, w: 1.2)
+            b.open(.window, 0, 5.6, w: 1.5)
+            b.bathWindow(0, 8.75)
+            b.open(.window, 0, 11.9, w: 1.5)
+            b.open(.panoramic, 2.5, 13.75, w: 1.8)
+            b.open(.panoramic, 15, 13.75, w: 3.0)
+            b.open(.window, 17.5, 5, w: 1.5)
+            b.open(.window, 17.5, 10.6, w: 1.5)
+            // патио
+            b.open(.panoramic, 5, 6.25, w: 1.6)
+            b.open(.panoramic, 5, 8.75, w: 1.6)
+            b.open(.panoramic, 5, 11.9, w: 1.6)
+            b.open(.panoramic, 7.0, 5, w: 2.0)
+            b.open(.panoramic, 10.5, 5, w: 2.0)
+            b.open(.glassDoor, 12.5, 9.4, w: 2.4)
+            // двери
+            b.open(.door, 4.4, 3.75)
+            b.open(.door, 3.75, 5.6)
+            b.open(.door, 4.4, 10)
+            b.open(.door, 1.1, 10)
+            b.open(.door, 3.0, 10)
+            b.open(.door, 7.4, 3.75)
+            b.open(.door, 7.45, 1.75, w: 0.7)
+            b.open(.door, 8.6, 2)
+            b.open(.glassDoor, 10.5, 3.75)
+            b.open(.door, 12.5, 1.25)
+            b.open(.glassDoor, 12.5, 4.4)
+            b.room(.bedroom, 2.5, 1.9)
+            b.room(.bedroom, 1.9, 5.6)
+            b.room(.corridor, 8.75, 4.4)
+            b.room(.wardrobe, 3.0, 8.75)
+            b.room(.bath, 1.1, 8.75)
+            b.room(.master, 2.5, 11.9)
+            b.room(.sauna, 6.5, 0.9)
+            b.room(.showerRoom, 6.5, 2.75)
+            b.room(.wardrobe, 9.0, 1.0)
+            b.room(.hall, 11.25, 2.5)
+            b.room(.boiler, 13.75, 1.25)
+            b.room(.kitchenLiving, 15, 8)
         },
 
         // ───────── С двором (атриум) ─────────
