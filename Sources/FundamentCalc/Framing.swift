@@ -507,7 +507,9 @@ enum FrameGen {
             a.zBottom = F.wallTop
             if p.roofType == .flat { floorGirders(&a, p, supports: lines) }
             addJoists(&F, a, rings: rings, depth: D, kind: .ceilingJoist, stage: .roof, withRim: p.roofType == .flat, trim: p.roofType == .flat ? 0.05 : 0.08)
-            addGirders(&F, a, stage: .roof, postBase: F.levels[floors - 1] + 0.05)
+            // прогон мансарды показываем вместе с его опорами (подвески к коньку добавляются позже, на RoofSeq.ties) —
+            // иначе на ранних подшагах кровли он висит в воздухе без видимой опоры
+            addGirders(&F, a, stage: .roof, postBase: F.levels[floors - 1] + 0.05, seq: RoofSeq.ties)
             F.attic = a
         }
 
@@ -962,6 +964,10 @@ enum FrameGen {
         func face(_ v: V2) -> Int? { Geo.contains(v, rings) ? model.depth(v)?.edge : nil }
         func slopeUp(_ n: V2) -> V3 { simd_normalize(V3(n.x * cosA, n.y * cosA, sin(alpha))) }
         func roofNormal(_ n: V2) -> V3 { simd_normalize(V3(-n.x * sin(alpha), -n.y * sin(alpha), cosA)) }
+        // высота кровельного покрытия в точке — как в SceneBuilder.buildRoof (та же модель с учётом свеса):
+        // используется, чтобы элементы под кровлей (подвески и т. п.) никогда не протыкали её
+        let roofBase = F.wallTop + model.lift - o * model.tanA
+        func roofSurf(_ v: V2) -> Double { roofBase + model.tanA * (model.depth(v)?.d ?? 0) }
 
         var ridgeKeys = Set<String>()
         func key(_ a: V3, _ b: V3) -> String {
@@ -1146,7 +1152,8 @@ enum FrameGen {
             for g in at.girders {
                 for v in g.hangers {
                     guard let dd = model.depth(v) else { continue }
-                    let top = zb(v, dd.d) + hR / cosA - 0.03
+                    // не выше самой кровли (с запасом на обрешётку и покрытие) — иначе бабка протыкает скат
+                    let top = min(zb(v, dd.d) + hR / cosA - 0.03, roofSurf(v) - 0.05)
                     guard top > gTop + 0.3 else { continue }
                     var m = Member(kind: .hanger, sec: Lumber(50, 150), a: v3(v, gTop), b: v3(v, top), up: V3((g.b - g.a).unit.x, (g.b - g.a).unit.y, 0), stage: .roof)
                     m.seq = RoofSeq.ties
@@ -1228,7 +1235,9 @@ enum FrameGen {
                 let bottom = j.z - hR / 2 / max(cosA, 0.3)
                 if bottom - jTop > 0.3 {
                     var s = Member(kind: .strut, sec: Lumber(100, 100), a: V3(j.x, j.y, jTop), b: V3(j.x, j.y, bottom), up: V3(dir.x, dir.y, 0) / max(hor, 1e-6), stage: .roof)
-                    s.seq = RoofSeq.ties
+                    // стойка-подпорка ставится вместе со стыком ноги, которую она держит — не позже,
+                    // иначе верхний кусок ноги повисает в воздухе на предыдущих подшагах кровли
+                    s.seq = last.seq
                     out.append(s)
                 }
             }

@@ -1,13 +1,45 @@
 import SwiftUI
 
+/// Диапазон площади — для фильтра в каталоге (от бытовок и бань до больших домов)
+enum AreaBucket: Int, CaseIterable, Identifiable {
+    case under20, from20to40, from40to70, from70to120, over120
+    var id: Int { rawValue }
+    var title: String {
+        switch self {
+        case .under20: return "до 20 м²"
+        case .from20to40: return "20–40 м²"
+        case .from40to70: return "40–70 м²"
+        case .from70to120: return "70–120 м²"
+        case .over120: return "120+ м²"
+        }
+    }
+    func contains(_ area: Double) -> Bool {
+        switch self {
+        case .under20: return area < 20
+        case .from20to40: return area >= 20 && area < 40
+        case .from40to70: return area >= 40 && area < 70
+        case .from70to120: return area >= 70 && area < 120
+        case .over120: return area >= 120
+        }
+    }
+}
+
 struct CatalogView: View {
     @EnvironmentObject var p: Project
     @Environment(\.dismiss) private var dismiss
     @State private var shape: HouseShape?
     @State private var foundation: FoundationKind?
+    @State private var category: BuildingCategory?
+    @State private var areaBucket: AreaBucket?
+    // площадь каждого проекта считается один раз — апеределение требует сборки проекта
+    @State private var areas: [String: Double] = [:]
 
     var filtered: [HousePreset] {
-        HousePreset.all.filter { (shape == nil || $0.shape == shape) && (foundation == nil || $0.foundation == foundation) }
+        HousePreset.all.filter {
+            (shape == nil || $0.shape == shape) && (foundation == nil || $0.foundation == foundation)
+                && (category == nil || $0.category == category)
+                && (areaBucket == nil || areaBucket!.contains(areas[$0.id] ?? 0))
+        }
     }
 
     var body: some View {
@@ -18,6 +50,20 @@ struct CatalogView: View {
                     Text("Все проекты — из стандартных материалов: шаг 625, стойка 3000, размеры кратны листу 1250, типовые окна и двери").font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
+                Button("Закрыть") { dismiss() }.keyboardShortcut(.cancelAction)
+            }
+            .padding(.horizontal, 14).padding(.top, 14)
+            HStack(spacing: 10) {
+                Picker("Тип", selection: $category) {
+                    Text("Все типы").tag(BuildingCategory?.none)
+                    ForEach(BuildingCategory.allCases) { Text($0.title).tag(BuildingCategory?.some($0)) }
+                }
+                .fixedSize()
+                Picker("Площадь", selection: $areaBucket) {
+                    Text("Любая").tag(AreaBucket?.none)
+                    ForEach(AreaBucket.allCases) { Text($0.title).tag(AreaBucket?.some($0)) }
+                }
+                .fixedSize()
                 Picker("Форма", selection: $shape) {
                     Text("Все формы").tag(HouseShape?.none)
                     ForEach(HouseShape.allCases) { Text($0.title).tag(HouseShape?.some($0)) }
@@ -27,9 +73,11 @@ struct CatalogView: View {
                     Text("Любой").tag(FoundationKind?.none)
                     Text("Ленточный").tag(FoundationKind?.some(.strip))
                     Text("Плита").tag(FoundationKind?.some(.slab))
+                    Text("Сваи").tag(FoundationKind?.some(.piles))
                 }
                 .fixedSize()
-                Button("Закрыть") { dismiss() }.keyboardShortcut(.cancelAction)
+                Spacer()
+                Text("\(filtered.count) из \(HousePreset.all.count)").font(.caption).foregroundStyle(.secondary)
             }
             .padding(14)
             Divider()
@@ -46,6 +94,12 @@ struct CatalogView: View {
             }
         }
         .frame(minWidth: 980, minHeight: 680)
+        .task {
+            // считаем один раз при открытии каталога, не на каждый кадр
+            var a: [String: Double] = [:]
+            for preset in HousePreset.all { a[preset.id] = preset.area().total }
+            areas = a
+        }
     }
 }
 
@@ -67,10 +121,11 @@ struct PresetCard: View {
                     .font(.headline).foregroundStyle(Color.accentColor)
             }
             HStack(spacing: 6) {
+                if preset.category != .house { chip(preset.category.title) }
                 chip(demo.shape.title)
                 chip("\(fmt(demo.length, 0))×\(fmt(demo.effW, 0)) м")
                 chip(demo.floors > 1 ? "\(demo.floors) этажа" : "1 этаж")
-                chip(preset.foundation == .slab ? "Плита" : "Лента")
+                chip(preset.foundation.title)
             }
             HStack(spacing: 6) {
                 chip(demo.defaultMaterial.short)

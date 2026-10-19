@@ -234,6 +234,96 @@ struct FundamentApp: App {
             MainActor.assumeIsolated { Snapshot.run(CommandLine.arguments[i + 1]) }
             exit(0)
         }
+        if CommandLine.arguments.contains("--roofpoke") {
+            // отладка: элементы прогона мансарды (прогон/стойка/подвеска/...), протыкающие кровлю
+            let presets = CommandLine.arguments.firstIndex(of: "--preset").flatMap { i -> [HousePreset] in
+                i + 1 < CommandLine.arguments.count ? HousePreset.all.filter { $0.id == CommandLine.arguments[i + 1] } : HousePreset.all
+            } ?? HousePreset.all
+            for pr in presets {
+                let p = Project()
+                pr.apply(p)
+                let r = Calculator.run(p)
+                let F = FrameGen.make(p, r)
+                let o = p.overhang
+                let model = RoofModel.of(p, overhang: o)
+                let rings = p.rings.enumerated().map { i, rr in Geo.offset(rr, by: i == 0 ? o : -o) }
+                let base = F.wallTop + model.lift - o * model.tanA
+                func roofZ(_ v: V2) -> Double? {
+                    guard Geo.contains(v, rings) else { return nil }
+                    guard let d = model.depth(v) else { return nil }
+                    return base + model.tanA * d.d
+                }
+                var bad = 0
+                let roofy: Set<MemberKind> = [.girder, .post, .hanger, .collar, .tie, .windBrace, .ceilingJoist, .gableStud]
+                for m in F.members where roofy.contains(m.kind) {
+                    for v3p in [m.a, m.b] {
+                        let v = V2(v3p.x, v3p.y)
+                        guard let rz = roofZ(v) else { continue }
+                        if v3p.z > rz + 0.01 {
+                            print("\(pr.id): \(m.kind) a=\(m.a) b=\(m.b) poke at \(v) memberZ=\(v3p.z) roofZ=\(rz) over=\(v3p.z - rz)")
+                            bad += 1
+                        }
+                    }
+                }
+                print("\(pr.id): \(bad) poke-through points")
+            }
+            exit(0)
+        }
+        if CommandLine.arguments.contains("--raftercount") {
+            let presets = CommandLine.arguments.firstIndex(of: "--preset").flatMap { i -> [HousePreset] in
+                i + 1 < CommandLine.arguments.count ? HousePreset.all.filter { $0.id == CommandLine.arguments[i + 1] } : HousePreset.all
+            } ?? HousePreset.all
+            for pr in presets {
+                let p = Project()
+                pr.apply(p)
+                let r = Calculator.run(p)
+                let F = FrameGen.make(p, r)
+                let model = RoofModel.of(p, overhang: p.overhang)
+                let eaveLen = model.edges.filter(\.eave).reduce(0.0) { $0 + ($1.b - $1.a).len }
+                let rafters = F.members.filter { $0.kind == .rafter }
+                let bySeq = Dictionary(grouping: rafters, by: \.seq).mapValues(\.count)
+                print("\(pr.id): roof=\(p.roofType.rawValue) rafters=\(rafters.count) (суммарно карнизов \(fmt(eaveLen, 1)) м) bySeq=\(bySeq.sorted { $0.key < $1.key })")
+            }
+            exit(0)
+        }
+        if CommandLine.arguments.contains("--doorcheck") {
+            // отладка: балки/прогоны/стойки, пересекающие проём двери в чистом проходе (мешают пройти)
+            let presets = CommandLine.arguments.firstIndex(of: "--preset").flatMap { i -> [HousePreset] in
+                i + 1 < CommandLine.arguments.count ? HousePreset.all.filter { $0.id == CommandLine.arguments[i + 1] } : HousePreset.all
+            } ?? HousePreset.all
+            let obstruct: Set<MemberKind> = [.joist, .girder, .post, .ceilingJoist, .strut, .hanger, .collar, .tie, .windBrace, .blocking]
+            for pr in presets {
+                let p = Project()
+                pr.apply(p)
+                let r = Calculator.run(p)
+                let F = FrameGen.make(p, r)
+                var bad = 0
+                for w in F.walls {
+                    for (k, o) in w.openings.enumerated() where k < w.kinds.count && w.kinds[k].isDoor {
+                        let a2 = w.a + w.dir * o.u0, b2 = w.a + w.dir * o.u1
+                        let zb = w.z0 + o.z0, zt = w.z0 + o.z1
+                        let margin = 0.03
+                        for m in F.members where obstruct.contains(m.kind) {
+                            var t = 0.0
+                            let L = m.length
+                            while t <= L {
+                                let v = m.a + (m.b - m.a) * (t / max(L, 1e-6))
+                                let u = dot2(V2(v.x, v.y) - a2, (b2 - a2).unit)
+                                let within2D = u > margin && u < (b2 - a2).len - margin && Geo.distToSegment(V2(v.x, v.y), a2, b2) < margin + 0.1
+                                if within2D, v.z > zb + margin, v.z < zt - margin {
+                                    print("\(pr.id): \(m.kind) wall=\(w.name) crosses door at u=\(fmt(u, 2)) z=\(fmt(v.z, 2)) (door z \(fmt(zb, 2))–\(fmt(zt, 2))) a=\(m.a) b=\(m.b)")
+                                    bad += 1
+                                    break
+                                }
+                                t += 0.05
+                            }
+                        }
+                    }
+                }
+                print("\(pr.id): \(bad) door obstructions")
+            }
+            exit(0)
+        }
         NSApplication.shared.setActivationPolicy(.regular)
         DispatchQueue.main.async { NSApp.activate(ignoringOtherApps: true) }
     }

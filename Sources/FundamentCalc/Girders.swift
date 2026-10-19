@@ -45,10 +45,13 @@ extension FrameGen {
     }
 
     /// Прогон по отрезку a→b: опоры на концах и в пересечениях, где пролёт велик — стойки
-    /// (по возможности — в местах перегородок, чтобы стойка ушла в стену)
+    /// (по возможности — в местах перегородок, чтобы стойка ушла в стену; мимо дверных проёмов — стойка не должна
+    /// перекрывать проход на всю высоту до прогона)
     static func girder(_ a: V2, _ b: V2, ends: (GirderSupport, GirderSupport), inner: [(Double, GirderSupport)], postSpots: [Double],
-                       qd: Double, qn: Double, trib: Double, above: Bool) -> Girder {
+                       qd: Double, qn: Double, trib: Double, above: Bool, avoid: (V2) -> Bool = { _ in false }) -> Girder {
         let L = (b - a).len
+        let dir = L > 1e-6 ? (b - a) / L : V2(1, 0)
+        func point(_ u: Double) -> V2 { a + dir * u }
         var sup: [(u: Double, kind: GirderSupport)] = [(0, ends.0), (L, ends.1)] + inner.filter { $0.0 > 0.2 && $0.0 < L - 0.2 }.map { (u: $0.0, kind: $0.1) }
         func norm() { sup.sort { $0.u < $1.u }; sup = sup.reduce(into: []) { acc, s in if let l = acc.last, s.u - l.u < 0.3 { if s.kind != .post { acc[acc.count - 1] = s } } else { acc.append(s) } } }
         norm()
@@ -59,9 +62,19 @@ extension FrameGen {
             guard let g = gaps.max(by: { $0.1 - $0.0 < $1.1 - $1.0 }) else { break }
             chk = Timber.pickBeam(span: max(g.1 - g.0, 0.5), qd: qd, qn: qn, steps: [trib], sizes: sizes, counts: [2, 3, 4])
             if chk.ok && g.1 - g.0 <= 4.0 { break }
-            // стойка — в середине самого длинного пролёта, или у перегородки рядом
+            // стойка — в середине самого длинного пролёта, или у перегородки рядом; мимо дверного проёма —
+            // ближайшая свободная точка в допустимой зоне, иначе стойка до потолка перекрыла бы проход
             let mid = (g.0 + g.1) / 2
-            let spot = postSpots.filter { $0 > g.0 + 0.6 && $0 < g.1 - 0.6 && abs($0 - mid) < (g.1 - g.0) * 0.3 }.min { abs($0 - mid) < abs($1 - mid) }
+            var spot = postSpots.filter { $0 > g.0 + 0.6 && $0 < g.1 - 0.6 && abs($0 - mid) < (g.1 - g.0) * 0.3 && !avoid(point($0)) }
+                .min { abs($0 - mid) < abs($1 - mid) }
+            if spot == nil, !avoid(point(mid)) { spot = mid }
+            if spot == nil {
+                var step = 0.1
+                while step < (g.1 - g.0) / 2 {
+                    if let c = [mid - step, mid + step].first(where: { $0 > g.0 + 0.3 && $0 < g.1 - 0.3 && !avoid(point($0)) }) { spot = c; break }
+                    step += 0.1
+                }
+            }
             sup.append((spot ?? mid, .post)); norm()
         }
         return Girder(a: a, b: b, supports: sup, check: chk, above: above)
@@ -74,6 +87,14 @@ extension FrameGen {
     static func atticJoists(_ p: Project, rings: [[V2]], supports allLines: [BearingLine], zBottom: Double, step: Double,
                             qd: Double, qn: Double, title: String, sizes: [Lumber], D: Double) -> JoistLayout {
         let model = RoofModel.of(p)
+        // стойка прогона идёт от пола до самого верха — её нельзя ставить над дверью, иначе она перекроет проход;
+        // проверяем только положение в плане (без учёта этажа — такая стойка всегда во весь рост)
+        let doorSpots: [(c: V2, w: Double)] = p.validOpenings.filter(\.kind.isDoor).compactMap { o in
+            guard let l = p.hostLine(o.host) else { return nil }
+            let d = (l.b - l.a).unit
+            return (l.a + d * o.pos, o.width)
+        }
+        func doorBlocked(_ v: V2) -> Bool { doorSpots.contains { (v - $0.c).len < $0.w / 2 + 0.3 } }
         let wings = p.wings
         let gridOff = p.modular ? -D / 2 : 0
         struct Region { var w: Wing; var lo: Double; var hi: Double; var cutLo: Bool; var cutHi: Bool }
@@ -121,6 +142,32 @@ extension FrameGen {
                 let a = w.axisX ? V2(lo, c) : V2(c, lo), b = w.axisX ? V2(hi, c) : V2(c, hi)
                 girderSpecs.append((a, b, (e0, e1), w))
             }
+        }
+        // у стены конца прогона скат крыши может уже понижаться до нуля (вальма, или конец крыла рядом
+        // с ендовой соседнего крыла у Г-/П-образных домов) — прогон, опирающийся там на стену на полной
+        // высоте, проткнёт кровлю. Укорачиваем такие концы до точки, где высоты ската хватает,
+        // и опираем на стойку (бабку), а не на стену
+        // консервативная оценка высоты «балка + прогон» над верхом стены (без точного сечения — оно ещё не подобрано)
+        let needRise = 0.5
+        let dMin = (needRise - model.lift) / model.tanA
+        // точка годится, если высоты ската хватает И стойка там не перекроет дверной проём снизу
+        func clear(_ v: V2) -> Bool { (model.depth(v)?.d ?? 0) >= dMin && !doorBlocked(v) }
+        for i in girderSpecs.indices {
+            var g = girderSpecs[i]
+            let L = (g.b - g.a).len
+            guard L > 0.6 else { continue }
+            let d = (g.b - g.a) / L
+            if g.ends.0 == .wall, !clear(g.a) {
+                var t = 0.0
+                while t < L * 0.4, !clear(g.a + d * t) { t += 0.05 }
+                if t > 0.05 { g.a = g.a + d * t; g.ends.0 = .post }
+            }
+            if g.ends.1 == .wall, !clear(g.b) {
+                var t = 0.0
+                while t < L * 0.4, !clear(g.b - d * t) { t += 0.05 }
+                if t > 0.05 { g.b = g.b - d * t; g.ends.1 = .post }
+            }
+            girderSpecs[i] = g
         }
         // балки
         var lineSup: [[Double]] = []
@@ -187,7 +234,7 @@ extension FrameGen {
             }
             // места для стоек — пересечения с любыми перегородками (стойка уйдёт в стену)
             let spots = p.partitions.compactMap { pt in Geo.segmentIntersection(g.a, g.b, pt.a, pt.b).map { $0 * L } }
-            jl.girders.append(girder(g.a, g.b, ends: g.ends, inner: inner, postSpots: spots, qd: qd, qn: qn, trib: trib, above: true))
+            jl.girders.append(girder(g.a, g.b, ends: g.ends, inner: inner, postSpots: spots, qd: qd, qn: qn, trib: trib, above: true, avoid: doorBlocked))
         }
         jl.beams = jl.girders.map { ($0.a, $0.b) }
         return jl

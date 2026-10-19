@@ -1,5 +1,19 @@
 import Foundation
 
+/// Тип постройки — для фильтра в каталоге готовых проектов
+enum BuildingCategory: String, CaseIterable, Identifiable {
+    case house, cottage, utility, sauna
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .house: return "Дом"
+        case .cottage: return "Малый домик"
+        case .utility: return "Бытовка / дровник"
+        case .sauna: return "Баня"
+        }
+    }
+}
+
 /// Готовый проект дома: форма, размеры, стены, кровля, планировка, окна/двери и тип фундамента
 struct HousePreset: Identifiable {
     let id: String
@@ -7,6 +21,7 @@ struct HousePreset: Identifiable {
     let summary: String
     let shape: HouseShape
     let foundation: FoundationKind
+    var category: BuildingCategory = .house
     let build: (Project) -> Void
 
     /// Проект строится и сразу подгоняется под модуль стандартных материалов
@@ -483,6 +498,207 @@ extension HousePreset {
             b.open(.glassDoor, 6.5, 9.8, w: 1.6)
             b.open(.door, 9.8, 4.85)
             b.open(.door, 9.8, 8.2)
+        },
+
+        // ───────── Бытовки и дровники ─────────
+        HousePreset(id: "shedMini", name: "Бытовка без окон",
+                    summary: "Самая бюджетная бытовка-времянка 3.75×3.75 м: один глухой объём без окон для хранения инструмента и материалов на стройке. Каркас 150 мм, профнастил, свайный фундамент — дёшево и быстро.",
+                    shape: .square, foundation: .piles, category: .utility) { p in
+            let b = PresetBuilder(p: p)
+            b.setup(.square, L: 3.75, W: 3.75, wall: .frame150, roof: .shed, covering: .profiledSheet, overhang: 0.3, foundation: .piles, facade: .siding)
+            b.open(.door, 1.875, 0)
+            b.room(.storage, 1.875, 1.875)
+        },
+        HousePreset(id: "shedWindow", name: "Бытовка с окном",
+                    summary: "Бытовка 5.0×3.75 м с одним небольшим подсобным окном: место для верстака или кладовая побольше. Каркас 150 мм, профнастил, свайный фундамент.",
+                    shape: .rectangle, foundation: .piles, category: .utility) { p in
+            let b = PresetBuilder(p: p)
+            b.setup(.rectangle, L: 5.0, W: 3.75, wall: .frame150, roof: .shed, covering: .profiledSheet, overhang: 0.3, foundation: .piles, facade: .siding)
+            b.open(.door, 1.25, 0)
+            b.techWindow(3.75, 0)
+            b.room(.storage, 2.5, 1.875)
+        },
+        HousePreset(id: "shedLiving", name: "Бытовка для проживания",
+                    summary: "Бытовка 6.25×3.75 м на два отсека: прихожая-кладовая и жилая комната с окном — для временного проживания на участке или гостевого домика. Каркас 150 мм, имитация бруса, свайный фундамент.",
+                    shape: .rectangle, foundation: .piles, category: .utility) { p in
+            let b = PresetBuilder(p: p)
+            b.setup(.rectangle, L: 6.25, W: 3.75, wall: .frame150, roof: .gable, covering: .metalTile, overhang: 0.4, foundation: .piles, facade: .imitationTimber)
+            b.wall(2.5, 0, 2.5, 3.75)
+            b.open(.door, 1.25, 0)
+            b.open(.window, 6.25, 1.875, w: 1.2)
+            b.open(.door, 2.5, 1.875)
+            b.room(.storage, 1.25, 1.875)
+            b.room(.living, 4.375, 1.875)
+        },
+        HousePreset(id: "woodshedSmall", name: "Дровник",
+                    summary: "Дровник 3.75×3.75 м с широким проёмом для загрузки дров тачкой: без окон, каркас 150 мм, профнастил, свайный фундамент — минимальная постройка для дров и инвентаря.",
+                    shape: .square, foundation: .piles, category: .utility) { p in
+            let b = PresetBuilder(p: p)
+            b.setup(.square, L: 3.75, W: 3.75, wall: .frame150, roof: .shed, covering: .profiledSheet, overhang: 0.3, foundation: .piles, facade: .siding)
+            b.open(.door, 1.875, 0, w: 1.5)
+            b.room(.storage, 1.875, 1.875)
+        },
+        HousePreset(id: "woodshedLong", name: "Дровник на два отсека",
+                    summary: "Дровник 6.25×3.75 м на два отсека со своими воротами в каждый — отдельно дрова и садовый инвентарь. Без окон, каркас 150 мм, профнастил, свайный фундамент.",
+                    shape: .rectangle, foundation: .piles, category: .utility) { p in
+            let b = PresetBuilder(p: p)
+            b.setup(.rectangle, L: 6.25, W: 3.75, wall: .frame150, roof: .shed, covering: .profiledSheet, overhang: 0.3, foundation: .piles, facade: .siding)
+            b.wall(3.125, 0, 3.125, 3.75)
+            b.open(.door, 1.5625, 0, w: 1.5)
+            b.open(.door, 4.6875, 0, w: 1.5)
+            b.room(.storage, 1.5625, 1.875)
+            b.room(.storage, 4.6875, 1.875)
+        },
+
+        // ───────── Бани ─────────
+        HousePreset(id: "saunaMini", name: "Мини-баня",
+                    summary: "Баня 3.75×3.75 м без отдельной душевой: парная совмещена с предбанником, одно небольшое окно, печь у глухой стены. Каркас 150 мм, имитация бруса, свайный фундамент — компактно и недорого.",
+                    shape: .square, foundation: .piles, category: .sauna) { p in
+            let b = PresetBuilder(p: p)
+            b.setup(.square, L: 3.75, W: 3.75, wall: .frame150, roof: .shed, covering: .metalTile, overhang: 0.3, foundation: .piles, facade: .imitationTimber)
+            b.open(.door, 1.875, 0)
+            b.techWindow(3.75, 1.875)
+            b.room(.sauna, 1.875, 1.875)
+        },
+        HousePreset(id: "saunaShower", name: "Баня с душевой",
+                    summary: "Баня 5.0×3.75 м: парная и душевая с санузлом — предбанник совмещён с душевой. Небольшое матовое окно, печь у глухой стены парной. Каркас 150 мм, имитация бруса, свайный фундамент.",
+                    shape: .rectangle, foundation: .piles, category: .sauna) { p in
+            let b = PresetBuilder(p: p)
+            b.setup(.rectangle, L: 5.0, W: 3.75, wall: .frame150, roof: .gable, covering: .metalTile, overhang: 0.4, foundation: .piles, facade: .imitationTimber)
+            b.wall(2.5, 0, 2.5, 3.75)
+            b.open(.door, 1.25, 0)
+            b.bathWindow(0, 1.875)
+            b.open(.door, 2.5, 1.875)
+            b.room(.showerRoom, 1.25, 1.875)
+            b.room(.sauna, 3.75, 1.875)
+        },
+        HousePreset(id: "saunaRest", name: "Баня с комнатой отдыха",
+                    summary: "Баня 6.25×5.0 м: парная, душевая с санузлом и просторная комната отдыха с окном и местом для стола. Каркас 150 мм, имитация бруса, двускатная кровля, ленточный фундамент.",
+                    shape: .rectangle, foundation: .strip, category: .sauna) { p in
+            let b = PresetBuilder(p: p)
+            b.setup(.rectangle, L: 6.25, W: 5.0, wall: .frame150, roof: .gable, covering: .metalTile, overhang: 0.4, foundation: .strip, facade: .imitationTimber)
+            b.wall(2.5, 0, 2.5, 5.0)
+            b.wall(0, 2.5, 2.5, 2.5)
+            b.open(.glassDoor, 4.375, 0, w: 1.2)
+            b.open(.window, 6.25, 2.5, w: 1.5)
+            b.bathWindow(0, 1.25)
+            b.open(.door, 2.5, 1.25)
+            b.open(.door, 1.25, 2.5)
+            b.room(.showerRoom, 1.25, 1.25)
+            b.room(.sauna, 1.25, 3.75)
+            b.room(.living, 4.375, 2.5)
+        },
+        HousePreset(id: "saunaPremium", name: "Баня премиум",
+                    summary: "Баня 7.5×6.25 м под вальмовой кровлей: парная, душевая с санузлом и просторная комната отдыха с панорамным окном и широким входом. Каркас 200 мм, фиброцементный фасад, композитная черепица, ленточный фундамент.",
+                    shape: .rectangle, foundation: .strip, category: .sauna) { p in
+            let b = PresetBuilder(p: p)
+            b.setup(.rectangle, L: 7.5, W: 6.25, wall: .frame200, roof: .hip, covering: .compositeTile, overhang: 0.5, foundation: .strip, facade: .fiberCement)
+            b.wall(2.5, 0, 2.5, 6.25)
+            b.wall(0, 3.125, 2.5, 3.125)
+            b.open(.glassDoor, 5.0, 0, w: 1.5)
+            b.open(.panoramic, 7.5, 3.125, w: 2.0)
+            b.bathWindow(0, 1.5625)
+            b.open(.door, 2.5, 1.5625)
+            b.open(.door, 1.25, 3.125)
+            b.room(.showerRoom, 1.25, 1.5625)
+            b.room(.sauna, 1.25, 4.6875)
+            b.room(.living, 5.0, 3.125)
+        },
+
+        // ───────── Маленькие дачные домики — квадрат ─────────
+        HousePreset(id: "dachaSquareBudget", name: "Дачный домик — квадрат, бюджетный",
+                    summary: "Компактный дачный домик 3.75×3.75 м в один объём: кухня-гостиная со спальным местом у стены. Каркас 150 мм, сайдинг, свайный фундамент — самый доступный вариант для старта на участке.",
+                    shape: .square, foundation: .piles, category: .cottage) { p in
+            let b = PresetBuilder(p: p)
+            b.setup(.square, L: 3.75, W: 3.75, wall: .frame150, roof: .shed, covering: .profiledSheet, overhang: 0.3, foundation: .piles, facade: .siding)
+            b.open(.door, 1.875, 0)
+            b.open(.window, 3.75, 1.875, w: 1.2)
+            b.room(.kitchenLiving, 1.875, 1.875)
+        },
+        HousePreset(id: "dachaSquarePremium", name: "Дачный домик — квадрат, премиум",
+                    summary: "Дачный домик 6.25×6.25 м: кухня-гостиная с окном в пол и выходом на участок, спальня и санузел. Каркас 200 мм, имитация бруса, двускатная кровля, плитный фундамент.",
+                    shape: .square, foundation: .slab, category: .cottage) { p in
+            let b = PresetBuilder(p: p)
+            b.setup(.square, L: 6.25, W: 6.25, wall: .frame200, roof: .gable, covering: .metalTile, overhang: 0.4, foundation: .slab, facade: .imitationTimber)
+            b.wall(0, 3.75, 6.25, 3.75)
+            b.wall(4.375, 3.75, 4.375, 6.25)
+            b.open(.glassDoor, 3.125, 0)
+            b.open(.panoramic, 0, 1.875, w: 1.8)
+            b.open(.window, 6.25, 1.875, w: 1.5)
+            b.open(.window, 2.1875, 6.25, w: 1.5)
+            b.bathWindow(6.25, 5.0)
+            b.open(.door, 2.1875, 3.75)
+            b.open(.door, 4.375, 5.0)
+            b.room(.kitchenLiving, 3.125, 1.875)
+            b.room(.bedroom, 2.1875, 5.0)
+            b.room(.bath, 5.3125, 5.0)
+        },
+
+        // ───────── Маленькие дачные домики — прямоугольные ─────────
+        HousePreset(id: "dachaRectBudget", name: "Дачный домик — прямоугольный, бюджетный",
+                    summary: "Дачный домик 5.0×3.75 м в один объём: кухня-гостиная со спальной зоной у глухой стены. Каркас 150 мм, сайдинг, односкатная кровля, свайный фундамент.",
+                    shape: .rectangle, foundation: .piles, category: .cottage) { p in
+            let b = PresetBuilder(p: p)
+            b.setup(.rectangle, L: 5.0, W: 3.75, wall: .frame150, roof: .shed, covering: .profiledSheet, overhang: 0.3, foundation: .piles, facade: .siding)
+            b.open(.door, 1.25, 0)
+            b.open(.window, 3.75, 0, w: 1.2)
+            b.open(.window, 5.0, 1.875, w: 1.5)
+            b.room(.kitchenLiving, 2.5, 1.875)
+        },
+        HousePreset(id: "dachaRectPremium", name: "Дачный домик — прямоугольный, премиум",
+                    summary: "Дачный домик 8.75×6.25 м: просторная кухня-гостиная с панорамным окном и порталом во двор, 2 спальни и санузел — у каждой комнаты свой вход и окно. Каркас 200 мм, имитация бруса, двускатная кровля, ленточный фундамент.",
+                    shape: .rectangle, foundation: .strip, category: .cottage) { p in
+            let b = PresetBuilder(p: p)
+            b.setup(.rectangle, L: 8.75, W: 6.25, wall: .frame200, roof: .gable, covering: .compositeTile, overhang: 0.4, foundation: .strip, facade: .imitationTimber)
+            b.wall(5.625, 0, 5.625, 6.25)
+            b.wall(5.625, 1.5, 8.75, 1.5)
+            b.wall(5.625, 3.75, 8.75, 3.75)
+            b.open(.glassDoor, 2.8125, 0)
+            b.open(.panoramic, 0, 3.125, w: 2.0)
+            b.open(.window, 2.8125, 6.25, w: 1.8)
+            b.open(.door, 5.625, 5.0)
+            b.open(.door, 5.625, 2.625)
+            b.open(.door, 5.625, 0.75)
+            b.open(.window, 8.75, 5.0, w: 1.5)
+            b.open(.window, 8.75, 2.625, w: 1.5)
+            b.bathWindow(8.75, 0.75)
+            b.room(.kitchenLiving, 2.8125, 3.125)
+            b.room(.bedroom, 7.1875, 5.0)
+            b.room(.bedroom, 7.1875, 2.625)
+            b.room(.bath, 7.1875, 0.75)
+        },
+
+        // ───────── Маленькие дачные домики — угловые ─────────
+        HousePreset(id: "dachaCornerBudget", name: "Дачный домик — угловой, бюджетный",
+                    summary: "Угловой дачный домик 5.0×5.0 м (крыло 2.5 м): кухня-гостиная и отдельная спальня в боковом крыле. Каркас 150 мм, сайдинг, односкатная кровля, свайный фундамент.",
+                    shape: .lShape, foundation: .piles, category: .cottage) { p in
+            let b = PresetBuilder(p: p)
+            b.setup(.lShape, L: 5.0, W: 5.0, a: 2.5, b: 2.5, wall: .frame150, roof: .shed, covering: .profiledSheet, overhang: 0.3, foundation: .piles, facade: .siding)
+            b.wall(0, 2.5, 2.5, 2.5)
+            b.open(.door, 2.5, 0)
+            b.open(.window, 5.0, 1.25, w: 1.2)
+            b.open(.window, 1.25, 5.0, w: 1.2)
+            b.open(.door, 1.25, 2.5)
+            b.room(.kitchenLiving, 3.125, 1.25)
+            b.room(.bedroom, 1.25, 3.75)
+        },
+        HousePreset(id: "dachaCornerPremium", name: "Дачный домик — угловой, премиум",
+                    summary: "Угловой дачный домик 7.5×7.5 м (крыло 3.75 м): кухня-гостиная с панорамным окном и порталом во двор, спальня и санузел в боковом крыле — у каждой комнаты свой свет. Каркас 200 мм, имитация бруса, двускатная кровля, плитный фундамент.",
+                    shape: .lShape, foundation: .slab, category: .cottage) { p in
+            let b = PresetBuilder(p: p)
+            b.setup(.lShape, L: 7.5, W: 7.5, a: 3.75, b: 3.75, wall: .frame200, roof: .gable, covering: .metalTile, overhang: 0.4, foundation: .slab, facade: .imitationTimber)
+            b.wall(0, 3.75, 3.75, 3.75)
+            b.wall(1.875, 3.75, 1.875, 7.5)
+            b.open(.glassDoor, 3.75, 0)
+            b.open(.panoramic, 0, 1.875, w: 2.0)
+            b.open(.window, 7.5, 1.875, w: 1.5)
+            b.open(.window, 0.9375, 7.5, w: 1.2)
+            b.bathWindow(2.8125, 7.5)
+            b.open(.door, 0.9375, 3.75)
+            b.open(.door, 2.8125, 3.75)
+            b.room(.kitchenLiving, 3.75, 1.875)
+            b.room(.bedroom, 0.9375, 5.625)
+            b.room(.bath, 2.8125, 5.625)
         },
     ]
 
